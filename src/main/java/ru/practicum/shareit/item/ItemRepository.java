@@ -11,5 +11,5 @@ public interface ItemRepository {
 
     Item save(Integer userId, Item item);
 
-    Item update(Integer userId, Item item);
+    Item update(Integer userId, Integer itemId, Item item);
 }

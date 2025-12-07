@@ -1,22 +1,25 @@
 package ru.practicum.shareit.item;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.item.dto.ItemDto;
 
 import java.util.List;
 
-/**
- * TODO Sprint add-controllers.
- */
 @RestController
 @RequestMapping("/items")
 @RequiredArgsConstructor
 public class ItemController {
     private final ItemService itemService;
 
-    @GetMapping
-    public List<ItemDto> get(@RequestHeader("X-Sharer-User-Id") Integer userId) {
+    @GetMapping("/{itemId}")
+    public ItemDto get(@RequestHeader("X-Sharer-User-Id") Integer userId, @PathVariable Integer itemId) {
+        return itemService.getItem(userId, itemId);
+    }
+
+    @GetMapping("")
+    public List<ItemDto> getItems(@RequestHeader("X-Sharer-User-Id") Integer userId) {
         return itemService.getItems(userId);
     }
 
@@ -24,5 +27,10 @@ public class ItemController {
     public ItemDto add(@RequestHeader("X-Sharer-User-Id") Integer userId,
                        @RequestBody ItemDto item) {
         return itemService.addItem(userId, item);
+    }
+
+    @PatchMapping("/{itemId}")
+    public ItemDto update(@Valid  @PathVariable Integer itemId, @RequestHeader("X-Sharer-User-Id") Integer userId, @RequestBody ItemDto item) {
+        return itemService.updateItem(userId, itemId, item);
     }
 }

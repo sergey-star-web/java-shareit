@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"ru.practicum.shareit.item"})
+@ComponentScan(basePackages = {"ru.practicum.shareit"})
 public class ShareItApp {
 	public static void main(String[] args) {
 		SpringApplication.run(ShareItApp.class, args);

@@ -31,7 +31,8 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public void updateItem(Integer userId, ItemDto itemDto) {
-        repository.update(userId, ItemMapper.toItem(itemDto));
+    public ItemDto updateItem(Integer userId, Integer itemId, ItemDto itemDto) {
+        Item item = repository.update(userId, itemId, ItemMapper.toItem(itemDto));
+        return ItemMapper.toItemDto(item);
     }
 }
