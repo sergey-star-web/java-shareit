@@ -80,7 +80,7 @@ public class ItemRepositoryImpl implements ItemRepository {
             } else if (item.getDescription() == null) {
                 throw new ValidationException("Описание вещи не может быть пустым");
             }
-            if (userRepository.findByUserId(userId) == null){
+            if (userRepository.findByUserId(userId) == null) {
                 String errorMessage = String.format("Не найден пользователь с ID %d", userId);
                 log.warn(errorMessage);
                 throw new NotFoundException(errorMessage);
