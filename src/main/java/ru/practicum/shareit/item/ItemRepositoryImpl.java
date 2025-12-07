@@ -121,4 +121,18 @@ public class ItemRepositoryImpl implements ItemRepository {
         log.info("Вещь успешно обновлена. Измененная вещь: {}", updateItem);
         return updateItem;
     }
+
+    @Override
+    public List<Item> findAvailableItems(String searchText, Integer userId) {
+        List<Item> result = new ArrayList<>();
+        String lowerCaseSearchText = searchText.toLowerCase();
+        for (Item item : items.get(userId)) {
+            if (item.getAvailable() &&
+                    (item.getName().toLowerCase().contains(lowerCaseSearchText) ||
+                            item.getDescription().toLowerCase().contains(lowerCaseSearchText))) {
+                result.add(item);
+            }
+        }
+        return result;
+    }
 }

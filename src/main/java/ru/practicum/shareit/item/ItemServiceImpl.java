@@ -35,4 +35,10 @@ public class ItemServiceImpl implements ItemService {
         Item item = repository.update(userId, itemId, ItemMapper.toItem(itemDto));
         return ItemMapper.toItemDto(item);
     }
+
+    @Override
+    public List<ItemDto> getAvailableItems(String searchText, Integer userId) {
+        List<Item> items = repository.findAvailableItems(searchText, userId);
+        return ItemMapper.toItemsDto(items);
+    }
 }

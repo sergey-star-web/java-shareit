@@ -33,4 +33,9 @@ public class ItemController {
     public ItemDto update(@Valid  @PathVariable Integer itemId, @RequestHeader("X-Sharer-User-Id") Integer userId, @RequestBody ItemDto item) {
         return itemService.updateItem(userId, itemId, item);
     }
+
+    @GetMapping("/search")
+    public List<ItemDto> searchItems(@RequestParam("text") String searchText, @RequestHeader("X-Sharer-User-Id") Integer userId) {
+        return itemService.getAvailableItems(searchText, userId);
+    }
 }

@@ -12,4 +12,6 @@ public interface ItemService {
     ItemDto addItem(Integer userId, ItemDto itemDto);
 
     ItemDto updateItem(Integer userId, Integer itemId, ItemDto itemDto);
+
+    List<ItemDto> getAvailableItems(String searchText, Integer userId);
 }

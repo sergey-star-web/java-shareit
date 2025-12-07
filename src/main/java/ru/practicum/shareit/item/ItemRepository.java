@@ -12,4 +12,6 @@ public interface ItemRepository {
     Item save(Integer userId, Item item);
 
     Item update(Integer userId, Integer itemId, Item item);
+
+    List<Item> findAvailableItems(String searchText, Integer userId);
 }
