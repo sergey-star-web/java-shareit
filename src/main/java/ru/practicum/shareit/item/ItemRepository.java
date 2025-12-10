@@ -2,16 +2,14 @@ package ru.practicum.shareit.item;
 
 import ru.practicum.shareit.item.model.Item;
 
-import java.util.List;
+import java.util.Map;
 
 public interface ItemRepository {
-    List<Item> findByUserId(Integer userId);
+    Map<Integer, Item> findByUserId(Integer userId);
 
     Item findByItemId(Integer userId, Integer itemId);
 
-    Item save(Integer userId, Item item);
+    void save(Integer userId, Map<Integer, Item> userItems);
 
-    Item update(Integer userId, Integer itemId, Item item);
-
-    List<Item> findAvailableItems(String searchText, Integer userId);
+    void update(Integer userId, Map<Integer, Item> userItems);
 }
