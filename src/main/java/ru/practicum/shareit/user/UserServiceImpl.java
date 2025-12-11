@@ -13,6 +13,7 @@ import ru.practicum.shareit.user.model.User;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserRepository repository;
+    private final String notFoundUserMessage = "Пользователь не найден";
     private Integer idCounter = 1;
 
     @Override
@@ -36,7 +37,7 @@ public class UserServiceImpl implements UserService {
     public UserDto updateUser(Integer userId, UserDto userDto) {
         log.info("Получен запрос на обновление пользователя: {}", userDto);
         User user = repository.findByUserId(userId);
-        throwIfNoUser(user.getId());
+        throwIfNoUser(user);
         UserDto userDtoUpdate = setUserFields(user, userDto);
         validateUser(userDtoUpdate);
         User userUpdate = getFullUser(userDtoUpdate);
@@ -55,11 +56,10 @@ public class UserServiceImpl implements UserService {
         return idCounter++;
     }
 
-    private void throwIfNoUser(Integer id) {
-        if (repository.findByUserId(id) == null) {
-            String errorMessage = String.format("Не найден пользователь с %d", id);
-            log.warn(errorMessage);
-            throw new NotFoundException(errorMessage);
+    private void throwIfNoUser(User user) {
+        if (user == null) {
+            log.warn(notFoundUserMessage);
+            throw new NotFoundException(notFoundUserMessage);
         }
     }
 
@@ -84,9 +84,8 @@ public class UserServiceImpl implements UserService {
                 throw new ValidationException("Email уже занят другим пользователем");
             }
         } else {
-            String errorMessage = "Пользователь не найден";
-            log.warn(errorMessage);
-            throw new NotFoundException(errorMessage);
+            log.warn(notFoundUserMessage);
+            throw new NotFoundException(notFoundUserMessage);
         }
     }
 

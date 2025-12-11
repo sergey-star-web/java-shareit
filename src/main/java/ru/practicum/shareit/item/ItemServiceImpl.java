@@ -17,6 +17,7 @@ import java.util.*;
 public class ItemServiceImpl implements ItemService {
     private final ItemRepository repository;
     private final UserRepository userRepository;
+    private final String notFoundItemMessage = "Вещь не найдена";
     private Integer idCounter = 1;
 
     @Override
@@ -52,6 +53,7 @@ public class ItemServiceImpl implements ItemService {
         log.info("Получен запрос на обновление вещи: {}", itemDto);
         itemDto.setId(itemId);
         Item itemFromRepos = repository.findByItemId(userId, itemDto.getId());
+        throwIfNoItem(itemFromRepos);
         itemDto = setItemFields(itemFromRepos, itemDto);
         ItemDto itemDtoValid = validateItem(itemDto, userId, itemFromRepos);
         Map<Integer, Item> userItems = repository.findByUserId(userId);
@@ -79,6 +81,13 @@ public class ItemServiceImpl implements ItemService {
         return idCounter++;
     }
 
+    private void throwIfNoItem(Item item) {
+        if (item == null) {
+            log.warn(notFoundItemMessage);
+            throw new NotFoundException(notFoundItemMessage);
+        }
+    }
+
     private ItemDto setItemFields(Item itemFromRepos, ItemDto itemDtoUpdate) {
         if (itemFromRepos != null) {
             if (itemDtoUpdate.getName() != null) {
@@ -97,9 +106,8 @@ public class ItemServiceImpl implements ItemService {
 
     private ItemDto validateItem(ItemDto itemDto, Integer userId, Item itemFromRepos) {
         if (itemDto == null) {
-            String errorMessage = "Вещь не найдена";
-            log.warn(errorMessage);
-            throw new NotFoundException(errorMessage);
+            log.warn(notFoundItemMessage);
+            throw new NotFoundException(notFoundItemMessage);
         }
         //Если вещь уже существует, значит происходит update
         if (itemFromRepos != null) {
