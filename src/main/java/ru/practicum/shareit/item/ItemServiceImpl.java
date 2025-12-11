@@ -35,7 +35,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemDto addItem(Integer userId, ItemDto itemDto) {
         log.info("Получен запрос на создание вещи: {}", itemDto);
-        validateItem(itemDto, userId);
+        validateItem(itemDto, userId, null);
         itemDto.setId(genNextId());
         itemDto.setOwner(userId);
         // Получаем текущий список для пользователя или создаем новый, если его еще нет
@@ -51,9 +51,10 @@ public class ItemServiceImpl implements ItemService {
     public ItemDto updateItem(Integer userId, Integer itemId, ItemDto itemDto) {
         log.info("Получен запрос на обновление вещи: {}", itemDto);
         itemDto.setId(itemId);
-        ItemDto itemDtoValid = validateItem(itemDto, userId);
+        Item itemFromRepos = repository.findByItemId(userId, itemDto.getId());
+        itemDto = setItemFields(itemFromRepos, itemDto);
+        ItemDto itemDtoValid = validateItem(itemDto, userId, itemFromRepos);
         Map<Integer, Item> userItems = repository.findByUserId(userId);
-        userItems.remove(itemId); // Удаляем старый элемент по ключу
         userItems.put(itemDtoValid.getId(), getFullItem(itemDto)); // Добавляем обновлённый элемент
         repository.update(userId, userItems);
         log.info("Вещь успешно обновлена. Измененная вещь: {}", itemDtoValid);
@@ -78,29 +79,34 @@ public class ItemServiceImpl implements ItemService {
         return idCounter++;
     }
 
-    private ItemDto validateItem(ItemDto itemDto, Integer userId) {
+    private ItemDto setItemFields(Item itemFromRepos, ItemDto itemDtoUpdate) {
+        if (itemFromRepos != null) {
+            if (itemDtoUpdate.getName() != null) {
+                itemFromRepos.setName(itemDtoUpdate.getName());
+            }
+            if (itemDtoUpdate.getDescription() != null) {
+                itemFromRepos.setDescription(itemDtoUpdate.getDescription());
+            }
+            if (itemDtoUpdate.getAvailable() != null) {
+                itemFromRepos.setAvailable(itemDtoUpdate.getAvailable());
+            }
+            return ItemMapper.toItemDto(itemFromRepos);
+        }
+        return null;
+    }
+
+    private ItemDto validateItem(ItemDto itemDto, Integer userId, Item itemFromRepos) {
         if (itemDto == null) {
             String errorMessage = "Вещь не найдена";
             log.warn(errorMessage);
             throw new NotFoundException(errorMessage);
         }
-        Item getItem = repository.findByItemId(userId, itemDto.getId());
         //Если вещь уже существует, значит происходит update
-        if (getItem != null) {
-            if (!userId.equals(getItem.getOwner())) {
+        if (itemFromRepos != null) {
+            if (!userId.equals(itemFromRepos.getOwner())) {
                 throw new ValidationException("Редактировать вещь может только владелец. id пользователя: "
-                        + userId + " id владельца вещи: " + getItem.getOwner());
+                        + userId + " id владельца вещи: " + itemFromRepos.getOwner());
             }
-            if (itemDto.getName() != null) {
-                getItem.setName(itemDto.getName());
-            }
-            if (itemDto.getDescription() != null) {
-                getItem.setDescription(itemDto.getDescription());
-            }
-            if (itemDto.getAvailable() != null) {
-                getItem.setAvailable(itemDto.getAvailable());
-            }
-            itemDto = ItemMapper.toItemDto(getItem);
         }
         if (itemDto.getAvailable() == null) {
             throw new ValidationException("Статус о доступности вещи не может быть пустым");

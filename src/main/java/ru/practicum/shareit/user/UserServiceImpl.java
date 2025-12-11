@@ -36,19 +36,13 @@ public class UserServiceImpl implements UserService {
     public UserDto updateUser(Integer userId, UserDto userDto) {
         log.info("Получен запрос на обновление пользователя: {}", userDto);
         User user = repository.findByUserId(userId);
-        if (userDto.getEmail() != null) {
-            user.setEmail(userDto.getEmail());
-        }
-        if (userDto.getName() != null) {
-            user.setName(userDto.getName());
-        }
-        UserDto userDtoFind = UserMapper.toUserDto(user);
-        validateUser(userDtoFind);
-        throwIfNoUser(userId);
-        User userUpdate = getFullUser(userDtoFind);
+        throwIfNoUser(user.getId());
+        UserDto userDtoUpdate = setUserFields(user, userDto);
+        validateUser(userDtoUpdate);
+        User userUpdate = getFullUser(userDtoUpdate);
         repository.update(userId, userUpdate);
         log.info("Пользователь успешно обновлен. Измененный пользователь: {}", userUpdate);
-        return userDtoFind;
+        return userDtoUpdate;
     }
 
     @Override
@@ -67,6 +61,16 @@ public class UserServiceImpl implements UserService {
             log.warn(errorMessage);
             throw new NotFoundException(errorMessage);
         }
+    }
+
+    private UserDto setUserFields(User userFromRepos, UserDto userDtoUpdate) {
+        if (userDtoUpdate.getEmail() != null) {
+            userFromRepos.setEmail(userDtoUpdate.getEmail());
+        }
+        if (userDtoUpdate.getName() != null) {
+            userFromRepos.setName(userDtoUpdate.getName());
+        }
+        return UserMapper.toUserDto(userFromRepos);
     }
 
     private void validateUser(UserDto userDto) {
