@@ -3,7 +3,6 @@ package ru.practicum.shareit.item;
 import lombok.NoArgsConstructor;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.request.ItemRequest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,8 +15,8 @@ public class ItemMapper {
                 item.getName(),
                 item.getDescription(),
                 item.getAvailable(),
-                item.getOwner(),
-                item.getRequest() != null ? item.getRequest().getId() : null
+                item.getOwnerId(),
+                item.getRequestId()
         );
     }
 
@@ -34,9 +33,7 @@ public class ItemMapper {
         item.setName(itemDto.getName());
         item.setDescription(itemDto.getDescription());
         item.setAvailable(itemDto.getAvailable());
-        if (itemDto.getRequest() != null) {
-            item.setRequest(new ItemRequest());
-        }
+        item.setRequestId(itemDto.getRequestId());
         return item;
     }
 }

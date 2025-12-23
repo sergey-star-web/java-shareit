@@ -6,10 +6,10 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class ItemDto {
-    private Integer id;
+    private Long id;
     private String name;
     private String description;
     private Boolean available;
-    private Integer owner;
-    private Integer request;
+    private Long ownerId;
+    private Long requestId;
 }

@@ -3,71 +3,79 @@ package ru.practicum.shareit.item;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.UserRepository;
+import ru.practicum.shareit.user.model.User;
 
 import java.util.*;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ItemServiceImpl implements ItemService {
     private final ItemRepository repository;
-    private final UserRepository userRepository;
+    //private final UserRepository userRepository;
     private final String notFoundItemMessage = "Вещь не найдена";
-    private Integer idCounter = 1;
 
     @Override
-    public List<ItemDto> getItems(Integer userId) {
-        Map<Integer, Item> itemsMap = repository.findByUserId(userId);
-        List<Item> items = new ArrayList<>(itemsMap.values());
+    public List<ItemDto> getItems(Long userId) {
+        List<Item> items = repository.findByOwnerId(userId);
         return ItemMapper.toItemsDto(items);
     }
 
     @Override
-    public ItemDto getItem(Integer userId, Integer itemId) {
-        Item item = repository.findByItemId(userId, itemId);
-        return ItemMapper.toItemDto(item);
+    public ItemDto getItem(Long userId, Long itemId) {
+        return repository.findById(itemId)
+                .map(ItemMapper::toItemDto)
+                .orElse(null);
     }
 
     @Override
-    public ItemDto addItem(Integer userId, ItemDto itemDto) {
+    @Transactional
+    public ItemDto addItem(Long userId, ItemDto itemDto) {
         log.info("Получен запрос на создание вещи: {}", itemDto);
+        itemDto.setOwnerId(userId);
         validateItem(itemDto, userId, null);
-        itemDto.setId(genNextId());
-        itemDto.setOwner(userId);
+        //itemDto.setId(genNextId());
         // Получаем текущий список для пользователя или создаем новый, если его еще нет
-        Map<Integer, Item> userItems = repository.findByUserId(userId);
+        //Map<Integer, Item> userItems = repository.findByUserId(userId);
         // Добавляем новый элемент в список
-        userItems.put(itemDto.getId(), getFullItem(itemDto));
-        repository.save(userId, userItems);
+        // userItems.put(itemDto.getId(), getFullItem(itemDto));
+        Item itemSave = ItemMapper.toItem(itemDto);
+        Long id = repository.save(itemSave).getId();
+        itemDto.setId(id);
         log.info("Вещь успешно создана. Созданная вещь: {}", itemDto);
         return itemDto;
     }
 
     @Override
-    public ItemDto updateItem(Integer userId, Integer itemId, ItemDto itemDto) {
+    @Transactional
+    public ItemDto updateItem(Long userId, Long itemId, ItemDto itemDto) {
         log.info("Получен запрос на обновление вещи: {}", itemDto);
-        itemDto.setId(itemId);
-        Item itemFromRepos = repository.findByItemId(userId, itemDto.getId());
+        //itemDto.setId(itemId);
+        Item itemFromRepos = repository.findById(itemId).orElse(null);
         throwIfNoItem(itemFromRepos);
         itemDto = setItemFields(itemFromRepos, itemDto);
         ItemDto itemDtoValid = validateItem(itemDto, userId, itemFromRepos);
-        Map<Integer, Item> userItems = repository.findByUserId(userId);
-        userItems.put(itemDtoValid.getId(), getFullItem(itemDto)); // Добавляем обновлённый элемент
-        repository.update(userId, userItems);
+        //Map<Integer, Item> userItems = repository.findByUserId(userId);
+        //userItems.put(itemDtoValid.getId(), getFullItem(itemDto)); // Добавляем обновлённый элемент
+        Item itemUpdate = getFullItem(itemDto);
+        repository.save(itemUpdate);
         log.info("Вещь успешно обновлена. Измененная вещь: {}", itemDtoValid);
-        return itemDtoValid;
+        return itemDto;
     }
 
     @Override
-    public List<ItemDto> getAvailableItems(String searchText, Integer userId) {
+    public List<ItemDto> getAvailableItems(String searchText, Long userId) {
         List<Item> result = new ArrayList<>();
         String lowerCaseSearchText = searchText.toLowerCase();
-        for (Item item : repository.findByUserId(userId).values()) {
+        for (Item item : repository.findByOwnerId(userId)) {
             if (item.getAvailable() &&
                     (item.getName().toLowerCase().contains(lowerCaseSearchText) ||
                             item.getDescription().toLowerCase().contains(lowerCaseSearchText))) {
@@ -75,10 +83,6 @@ public class ItemServiceImpl implements ItemService {
             }
         }
         return ItemMapper.toItemsDto(result);
-    }
-
-    private Integer genNextId() {
-        return idCounter++;
     }
 
     private void throwIfNoItem(Item item) {
@@ -104,16 +108,16 @@ public class ItemServiceImpl implements ItemService {
         return null;
     }
 
-    private ItemDto validateItem(ItemDto itemDto, Integer userId, Item itemFromRepos) {
+    private ItemDto validateItem(ItemDto itemDto, Long userId, Item itemFromRepos) {
         if (itemDto == null) {
             log.warn(notFoundItemMessage);
             throw new NotFoundException(notFoundItemMessage);
         }
         //Если вещь уже существует, значит происходит update
         if (itemFromRepos != null) {
-            if (!userId.equals(itemFromRepos.getOwner())) {
+            if (!userId.equals(itemFromRepos.getOwnerId())) {
                 throw new ValidationException("Редактировать вещь может только владелец. id пользователя: "
-                        + userId + " id владельца вещи: " + itemFromRepos.getOwner());
+                        + userId + " id владельца вещи: " + itemFromRepos.getOwnerId());
             }
         }
         if (itemDto.getAvailable() == null) {
@@ -123,7 +127,7 @@ public class ItemServiceImpl implements ItemService {
         } else if (itemDto.getDescription() == null) {
             throw new ValidationException("Описание вещи не может быть пустым");
         }
-        if (userRepository.findByUserId(userId) == null) {
+        if (!repository.isUserExist(userId)) {
             String errorMessage = String.format("Не найден пользователь с ID %d", userId);
             log.warn(errorMessage);
             throw new NotFoundException(errorMessage);
@@ -134,7 +138,7 @@ public class ItemServiceImpl implements ItemService {
     private Item getFullItem(ItemDto itemDto) {
         Item fullItem = ItemMapper.toItem(itemDto);
         fullItem.setId(itemDto.getId());
-        fullItem.setOwner(itemDto.getOwner());
+        fullItem.setOwnerId(itemDto.getOwnerId());
         return fullItem;
     }
 }
