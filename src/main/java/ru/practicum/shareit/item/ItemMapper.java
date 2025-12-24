@@ -34,6 +34,7 @@ public class ItemMapper {
         item.setDescription(itemDto.getDescription());
         item.setAvailable(itemDto.getAvailable());
         item.setRequestId(itemDto.getRequestId());
+        item.setOwnerId(itemDto.getOwnerId());
         return item;
     }
 }

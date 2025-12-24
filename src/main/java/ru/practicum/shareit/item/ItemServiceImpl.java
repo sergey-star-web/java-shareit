@@ -8,9 +8,6 @@ import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.user.UserMapper;
-import ru.practicum.shareit.user.UserRepository;
-import ru.practicum.shareit.user.model.User;
 
 import java.util.*;
 
@@ -20,7 +17,6 @@ import java.util.*;
 @Transactional(readOnly = true)
 public class ItemServiceImpl implements ItemService {
     private final ItemRepository repository;
-    //private final UserRepository userRepository;
     private final String notFoundItemMessage = "Вещь не найдена";
 
     @Override
@@ -42,11 +38,6 @@ public class ItemServiceImpl implements ItemService {
         log.info("Получен запрос на создание вещи: {}", itemDto);
         itemDto.setOwnerId(userId);
         validateItem(itemDto, userId, null);
-        //itemDto.setId(genNextId());
-        // Получаем текущий список для пользователя или создаем новый, если его еще нет
-        //Map<Integer, Item> userItems = repository.findByUserId(userId);
-        // Добавляем новый элемент в список
-        // userItems.put(itemDto.getId(), getFullItem(itemDto));
         Item itemSave = ItemMapper.toItem(itemDto);
         Long id = repository.save(itemSave).getId();
         itemDto.setId(id);
@@ -58,13 +49,10 @@ public class ItemServiceImpl implements ItemService {
     @Transactional
     public ItemDto updateItem(Long userId, Long itemId, ItemDto itemDto) {
         log.info("Получен запрос на обновление вещи: {}", itemDto);
-        //itemDto.setId(itemId);
         Item itemFromRepos = repository.findById(itemId).orElse(null);
         throwIfNoItem(itemFromRepos);
         itemDto = setItemFields(itemFromRepos, itemDto);
         ItemDto itemDtoValid = validateItem(itemDto, userId, itemFromRepos);
-        //Map<Integer, Item> userItems = repository.findByUserId(userId);
-        //userItems.put(itemDtoValid.getId(), getFullItem(itemDto)); // Добавляем обновлённый элемент
         Item itemUpdate = getFullItem(itemDto);
         repository.save(itemUpdate);
         log.info("Вещь успешно обновлена. Измененная вещь: {}", itemDtoValid);
@@ -116,7 +104,7 @@ public class ItemServiceImpl implements ItemService {
         //Если вещь уже существует, значит происходит update
         if (itemFromRepos != null) {
             if (!userId.equals(itemFromRepos.getOwnerId())) {
-                throw new ValidationException("Редактировать вещь может только владелец. id пользователя: "
+                throw new NotFoundException("Редактировать вещь может только владелец. id пользователя: "
                         + userId + " id владельца вещи: " + itemFromRepos.getOwnerId());
             }
         }
