@@ -1,12 +1,12 @@
 package ru.practicum.shareit.booking;
 
 import ru.practicum.shareit.booking.dto.BookingDto;
-import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.booking.dto.BookingRequestDto;
 
 public interface BookingService {
     BookingDto getBooking(Long userId);
 
-    BookingDto addBooking(UserDto userDto);
+    BookingDto addBooking(Long userId, BookingRequestDto bookingRequestDto);
 
-    BookingDto updateBooking(Long userId, UserDto userDto);
+    BookingDto updateBooking(Long userId, Long bookingId, Boolean approved);
 }

@@ -20,4 +20,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public void handleValidateException(HttpServletResponse response) throws IOException {
         response.sendError(HttpStatus.INTERNAL_SERVER_ERROR.value());
     }
+
+    @ExceptionHandler(AvailableException.class)
+    public void handleAvailableExceptionException(HttpServletResponse response) throws IOException {
+        response.sendError(HttpStatus.BAD_REQUEST.value());
+    }
 }
