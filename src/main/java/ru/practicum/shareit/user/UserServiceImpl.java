@@ -9,6 +9,8 @@ import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 
+import java.util.List;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -22,6 +24,12 @@ public class UserServiceImpl implements UserService {
         return repository.findById(userId)
                 .map(UserMapper::toUserDto)
                 .orElse(null);
+    }
+
+    @Override
+    public List<UserDto> getUsers() {
+        List<User> users = repository.findAll();
+        return UserMapper.toUsersDto(users);
     }
 
     @Override

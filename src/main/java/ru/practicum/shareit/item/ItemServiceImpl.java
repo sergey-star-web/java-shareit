@@ -4,11 +4,22 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.booking.Booking;
+import ru.practicum.shareit.booking.BookingRepository;
+import ru.practicum.shareit.booking.BookingStatus;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
+import ru.practicum.shareit.item.dto.CommentDto;
+import ru.practicum.shareit.item.dto.ItemCommDto;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemListDto;
+import ru.practicum.shareit.item.model.BookingDate;
+import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.user.UserServiceImpl;
+import ru.practicum.shareit.user.dto.UserDto;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Slf4j
@@ -17,6 +28,9 @@ import java.util.*;
 @Transactional(readOnly = true)
 public class ItemServiceImpl implements ItemService {
     private final ItemRepository repository;
+    private final BookingRepository bookingRepository;
+    private final CommentRepository commentRepository;
+    private final UserServiceImpl userService;
     private final String notFoundItemMessage = "Вещь не найдена";
 
     @Override
@@ -26,10 +40,22 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public ItemDto getItem(Long userId, Long itemId) {
+    public ItemDto getItem(Long itemId) {
         return repository.findById(itemId)
                 .map(ItemMapper::toItemDto)
                 .orElse(null);
+    }
+
+    @Override
+    public ItemCommDto getItemComm(Long itemId) {
+        Item item = repository.findById(itemId).orElseThrow(() -> new NotFoundException(notFoundItemMessage));
+        ItemCommDto itemCommDto = ItemMapper.toItemCommDto(item);
+        List<Booking> bookings = bookingRepository.findAllByItemId(item.getId());
+        BookingDate bookingDate = setBookingDates(bookings);
+        itemCommDto.setLastBooking(bookingDate.getLastBookingDate());
+        itemCommDto.setNextBooking(bookingDate.getNextBookingDate());
+        itemCommDto.setComments(getCommentsByItemId(itemId));
+        return itemCommDto;
     }
 
     @Override
@@ -60,6 +86,32 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
+    @Transactional
+    public CommentDto addComment(Long itemId, Comment comment, Long userId) {
+        log.info("Получен запрос на добавление отзыва: {}", comment);
+        // Проверка, что пользователь действительно брал вещь в аренду
+        boolean userHasRentedItem = checkIfUserRentedItem(userId, itemId);
+        if (!userHasRentedItem) {
+            throw new ValidationException("Пользователь не может оставить комментарий, так как не брал вещь в аренду");
+        }
+
+        comment.setItem(repository.findById(itemId).orElseThrow(() -> new IllegalArgumentException(notFoundItemMessage)));
+        comment.setCreated(LocalDateTime.now());
+        comment.setAuthorId(userId);
+        Long id = commentRepository.save(comment).getId();
+        comment.setId(id);
+
+        log.info("Отзыв успешно добавлен. Добавленный отзыв: {}", comment);
+        return CommentDto.builder()
+                .id(id)
+                .text(comment.getText())
+                .item(comment.getItem())
+                .authorName(userService.getUser(userId).getName())
+                .created(comment.getCreated())
+                .build();
+    }
+
+    @Override
     public List<ItemDto> getAvailableItems(String searchText, Long userId) {
         List<Item> result = new ArrayList<>();
         String lowerCaseSearchText = searchText.toLowerCase();
@@ -71,6 +123,78 @@ public class ItemServiceImpl implements ItemService {
             }
         }
         return ItemMapper.toItemsDto(result);
+    }
+
+    @Override
+    public List<ItemListDto> getItemsWithBookingDates(Long ownerId) {
+        List<Item> items = repository.findByOwnerId(ownerId);
+
+        List<ItemListDto> itemDtos = new ArrayList<>();
+        for (Item item : items) {
+            List<Booking> bookings = bookingRepository.findAllByItemId(item.getId());
+            BookingDate bookingDate = setBookingDates(bookings);
+            ItemListDto itemDto = new ItemListDto(item.getId(), item.getName(), bookingDate.getLastBookingDate(), bookingDate.getNextBookingDate());
+
+            itemDtos.add(itemDto);
+        }
+
+        return itemDtos;
+    }
+
+    private BookingDate setBookingDates(List<Booking> bookings) {
+        BookingDate bookingDate = new BookingDate();
+        LocalDateTime lastBookingDate = null;
+        LocalDateTime nextBookingDate = null;
+
+        if (!bookings.isEmpty()) {
+            lastBookingDate = bookings.stream()
+                    .max(Comparator.comparing(Booking::getEnd))
+                    .get()
+                    .getEnd();
+
+            nextBookingDate = bookings.stream()
+                    .filter(booking -> booking.getStart().isAfter(LocalDateTime.now()))
+                    .min(Comparator.comparing(Booking::getStart))
+                    .map(Booking::getStart)
+                    .orElse(null);
+        }
+        if (nextBookingDate == null) {
+            lastBookingDate = null;
+        }
+        bookingDate.setLastBookingDate(lastBookingDate);
+        bookingDate.setNextBookingDate(nextBookingDate);
+        return bookingDate;
+    }
+
+    private List<CommentDto> getCommentsByItemId(Long itemId) {
+        List<Comment> comments = commentRepository.findAllByItemId(itemId);
+        List<CommentDto> commentDtos = new ArrayList<>();
+        List<UserDto> userDtos = userService.getUsers();
+        HashMap<Long, String> users = new HashMap<>();
+
+        for (UserDto userDto : userDtos) {
+            users.put(userDto.getId(), userDto.getName());
+        }
+        for (Comment comment : comments) {
+            CommentDto commentDto = CommentDto.builder()
+                    .id(comment.getId())
+                    .text(comment.getText())
+                    .created(comment.getCreated())
+                    .authorName(users.get(comment.getAuthorId()))
+                    .build();
+            commentDtos.add(commentDto);
+        }
+        return commentDtos;
+    }
+
+    private boolean checkIfUserRentedItem(Long userId, Long itemId) {
+        // Получаем все бронирования текущего пользователя
+        List<Booking> userBookings = bookingRepository.findAllByBookerId(userId)
+                .stream().filter(b -> !b.getStatus().equals(BookingStatus.WAITING)).toList()
+                ;
+        // Проверяем, есть ли среди бронирований пользователя то, которое относится к нужной вещи
+
+        return userBookings.stream().anyMatch(booking -> booking.getItemId().equals(itemId));
     }
 
     private void throwIfNoItem(Item item) {

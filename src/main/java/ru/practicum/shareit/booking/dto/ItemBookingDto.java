@@ -8,4 +8,8 @@ import lombok.Data;
 public class ItemBookingDto {
     private Long id;
     private String name;
+
+    public ItemBookingDto(Long id) {
+        this.id = id;
+    }
 }

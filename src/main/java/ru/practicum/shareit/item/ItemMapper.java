@@ -1,6 +1,7 @@
 package ru.practicum.shareit.item;
 
 import lombok.NoArgsConstructor;
+import ru.practicum.shareit.item.dto.ItemCommDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 
@@ -18,6 +19,15 @@ public class ItemMapper {
                 item.getOwnerId(),
                 item.getRequestId()
         );
+    }
+
+    public static ItemCommDto toItemCommDto(Item item) {
+        ItemCommDto itemCommDto = new ItemCommDto();
+        itemCommDto.setId(item.getId());
+        itemCommDto.setName(item.getName());
+        itemCommDto.setDescription(item.getDescription());
+        itemCommDto.setAvailable(item.getAvailable());
+        return itemCommDto;
     }
 
     public static List<ItemDto> toItemsDto(Iterable<Item> items) {
