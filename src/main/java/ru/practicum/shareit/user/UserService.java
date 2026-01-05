@@ -14,4 +14,6 @@ public interface UserService {
     UserDto updateUser(Long userId, UserDto userDto);
 
     UserDto deleteUser(Long userId);
+
+    Boolean existsUser(Long userId);
 }

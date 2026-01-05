@@ -2,10 +2,11 @@ package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.Booking;
-import ru.practicum.shareit.booking.BookingRepository;
+import ru.practicum.shareit.booking.BookingService;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.dto.CommentDto;
@@ -15,7 +16,7 @@ import ru.practicum.shareit.item.dto.ItemListDto;
 import ru.practicum.shareit.item.model.BookingDate;
 import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.user.UserServiceImpl;
+import ru.practicum.shareit.user.UserService;
 import ru.practicum.shareit.user.dto.UserDto;
 
 import java.time.LocalDateTime;
@@ -27,9 +28,10 @@ import java.util.*;
 @Transactional(readOnly = true)
 public class ItemServiceImpl implements ItemService {
     private final ItemRepository repository;
-    private final BookingRepository bookingRepository;
+    @Autowired
+    private BookingService bookingService;
     private final CommentRepository commentRepository;
-    private final UserServiceImpl userService;
+    private final UserService userService;
     private static final String NOT_FOUND_ITEM_MESSAGE = "Вещь не найдена";
 
     @Override
@@ -40,10 +42,10 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public ItemCommDto getItemComm(Long itemId) {
+    public ItemCommDto getItemById(Long itemId) {
         Item item = repository.findById(itemId).orElseThrow(() -> new NotFoundException(NOT_FOUND_ITEM_MESSAGE));
         ItemCommDto itemCommDto = ItemMapper.toItemCommDto(item);
-        List<Booking> bookings = bookingRepository.findAllByItemId(item.getId());
+        List<Booking> bookings = bookingService.getItemBookings(item.getId());
         BookingDate bookingDate = setBookingDates(bookings);
         itemCommDto.setLastBooking(bookingDate.getLastBookingDate());
         itemCommDto.setNextBooking(bookingDate.getNextBookingDate());
@@ -69,7 +71,10 @@ public class ItemServiceImpl implements ItemService {
     public ItemDto updateItem(Long userId, Long itemId, ItemDto itemDto) {
         log.info("Получен запрос на обновление вещи: {}", itemDto);
         Item itemFromRepos = repository.findById(itemId).orElse(null);
-        throwIfNoItem(itemFromRepos);
+        if (itemFromRepos == null) {
+            log.warn(NOT_FOUND_ITEM_MESSAGE);
+            throw new NotFoundException(NOT_FOUND_ITEM_MESSAGE);
+        }
         itemDto = setItemFields(itemFromRepos, itemDto);
         ItemDto itemDtoValid = validateItem(itemDto, userId, itemFromRepos);
         Item itemUpdate = getFullItem(itemDto);
@@ -80,28 +85,22 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Transactional
-    public CommentDto addComment(Long itemId, Comment comment, Long userId) {
-        log.info("Получен запрос на добавление отзыва: {}", comment);
+    public CommentDto addComment(Long itemId, CommentDto commentDto, Long userId) {
+        log.info("Получен запрос на добавление отзыва: {}", commentDto);
         // Проверка, что пользователь действительно брал вещь в аренду
         boolean userHasRentedItem = checkIfUserRentedItem(userId, itemId);
         if (!userHasRentedItem) {
             throw new ValidationException("Пользователь не может оставить комментарий, так как не брал вещь в аренду");
         }
 
-        comment.setItem(repository.findById(itemId).orElseThrow(() -> new IllegalArgumentException(NOT_FOUND_ITEM_MESSAGE)));
-        comment.setCreated(LocalDateTime.now());
-        comment.setAuthorId(userId);
-        Long id = commentRepository.save(comment).getId();
-        comment.setId(id);
+        commentDto.setItem(repository.findById(itemId).orElseThrow(() -> new IllegalArgumentException(NOT_FOUND_ITEM_MESSAGE)));
+        commentDto.setCreated(LocalDateTime.now());
+        commentDto.setAuthorName(userService.getUser(userId).getName());
+        Long id = commentRepository.save(CommentMapper.toComment(commentDto, userId)).getId();
+        commentDto.setId(id);
 
-        log.info("Отзыв успешно добавлен. Добавленный отзыв: {}", comment);
-        return CommentDto.builder()
-                .id(id)
-                .text(comment.getText())
-                .item(comment.getItem())
-                .authorName(userService.getUser(userId).getName())
-                .created(comment.getCreated())
-                .build();
+        log.info("Отзыв успешно добавлен. Добавленный отзыв: {}", commentDto);
+        return commentDto;
     }
 
     @Override
@@ -122,16 +121,35 @@ public class ItemServiceImpl implements ItemService {
     public List<ItemListDto> getItemsWithBookingDates(Long ownerId) {
         List<Item> items = repository.findByOwnerId(ownerId);
 
+        // Получаем все бронирования для элементов данного владельца
+        List<Booking> allBookings = bookingService.getBookingsForItems(items);
+
+        Map<Long, List<Booking>> bookingsByItemId = new HashMap<>();
+        for (Booking booking : allBookings) {
+            bookingsByItemId.computeIfAbsent(booking.getItemId(), k -> new ArrayList<>()).add(booking);
+        }
+
         List<ItemListDto> itemDtos = new ArrayList<>();
         for (Item item : items) {
-            List<Booking> bookings = bookingRepository.findAllByItemId(item.getId());
-            BookingDate bookingDate = setBookingDates(bookings);
+            List<Booking> itemBookings = bookingsByItemId.getOrDefault(item.getId(), Collections.emptyList());
+            BookingDate bookingDate = setBookingDates(itemBookings);
             ItemListDto itemDto = new ItemListDto(item.getId(), item.getName(), bookingDate.getLastBookingDate(), bookingDate.getNextBookingDate());
 
             itemDtos.add(itemDto);
         }
 
         return itemDtos;
+    }
+
+    @Override
+    public Boolean checkIfUserRentedItem(Long userId, Long itemId) {
+        // Получаем все бронирования текущего пользователя
+        List<Booking> userBookings = bookingService.getBookerBookings(userId);
+
+        // Проверяем, есть ли среди бронирований пользователя то, которое относится к нужной вещи
+        // и срок аренды которого уже закончился
+        return userBookings.stream()
+                .anyMatch(booking -> booking.getItemId().equals(itemId) && booking.getEnd().isBefore(LocalDateTime.now()));
     }
 
     private BookingDate setBookingDates(List<Booking> bookings) {
@@ -180,23 +198,6 @@ public class ItemServiceImpl implements ItemService {
         return commentDtos;
     }
 
-    private boolean checkIfUserRentedItem(Long userId, Long itemId) {
-        // Получаем все бронирования текущего пользователя
-        List<Booking> userBookings = bookingRepository.findAllByBookerId(userId);
-
-        // Проверяем, есть ли среди бронирований пользователя то, которое относится к нужной вещи
-        // и срок аренды которого уже закончился
-        return userBookings.stream()
-                .anyMatch(booking -> booking.getItemId().equals(itemId) && booking.getEnd().isBefore(LocalDateTime.now()));
-    }
-
-    private void throwIfNoItem(Item item) {
-        if (item == null) {
-            log.warn(NOT_FOUND_ITEM_MESSAGE);
-            throw new NotFoundException(NOT_FOUND_ITEM_MESSAGE);
-        }
-    }
-
     private ItemDto setItemFields(Item itemFromRepos, ItemDto itemDtoUpdate) {
         if (itemFromRepos != null) {
             if (itemDtoUpdate.getName() != null) {
@@ -232,7 +233,7 @@ public class ItemServiceImpl implements ItemService {
         } else if (itemDto.getDescription() == null) {
             throw new ValidationException("Описание вещи не может быть пустым");
         }
-        if (!repository.isUserExist(userId)) {
+        if (!userService.existsUser(userId)) {
             String errorMessage = String.format("Не найден пользователь с ID %d", userId);
             log.warn(errorMessage);
             throw new NotFoundException(errorMessage);

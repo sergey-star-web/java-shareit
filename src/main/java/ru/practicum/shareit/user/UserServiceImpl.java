@@ -49,7 +49,10 @@ public class UserServiceImpl implements UserService {
     public UserDto updateUser(Long userId, UserDto userDto) {
         log.info("Получен запрос на обновление пользователя: {}", userDto);
         User user = repository.findById(userId).orElse(null);
-        throwIfNoUser(user);
+        if (user == null) {
+            log.warn(NOT_FOUND_USER_MESSAGE);
+            throw new NotFoundException(NOT_FOUND_USER_MESSAGE);
+        }
         UserDto userDtoUpdate = setUserFields(user, userDto);
         validateUser(userDtoUpdate);
         User userUpdate = getFullUser(userDtoUpdate);
@@ -69,11 +72,9 @@ public class UserServiceImpl implements UserService {
         return null;
     }
 
-    private void throwIfNoUser(User user) {
-        if (user == null) {
-            log.warn(NOT_FOUND_USER_MESSAGE);
-            throw new NotFoundException(NOT_FOUND_USER_MESSAGE);
-        }
+    @Override
+    public Boolean existsUser(Long userId) {
+        return repository.existsById(userId);
     }
 
     private UserDto setUserFields(User userFromRepos, UserDto userDtoUpdate) {

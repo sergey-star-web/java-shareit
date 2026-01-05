@@ -4,7 +4,6 @@ import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemCommDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemListDto;
-import ru.practicum.shareit.item.model.Comment;
 
 import java.util.List;
 
@@ -13,7 +12,7 @@ public interface ItemService {
 
     ItemDto getItem(Long itemId);
 
-    ItemCommDto getItemComm(Long itemId);
+    ItemCommDto getItemById(Long itemId);
 
     ItemDto addItem(Long userId, ItemDto itemDto);
 
@@ -21,5 +20,7 @@ public interface ItemService {
 
     List<ItemDto> getAvailableItems(String searchText, Long userId);
 
-    CommentDto addComment(Long itemId, Comment comment, Long userId);
+    CommentDto addComment(Long itemId, CommentDto commentDto, Long userId);
+
+    Boolean checkIfUserRentedItem(Long userId, Long itemId);
 }
