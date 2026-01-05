@@ -9,8 +9,6 @@ import ru.practicum.shareit.item.model.Comment;
 import java.util.List;
 
 public interface ItemService {
-    List<ItemDto> getItems(Long userId);
-
     List<ItemListDto> getItemsWithBookingDates(Long userId);
 
     ItemDto getItem(Long itemId);

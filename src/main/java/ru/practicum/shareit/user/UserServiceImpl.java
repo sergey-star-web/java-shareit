@@ -17,7 +17,7 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
     private final UserRepository repository;
-    private final String notFoundUserMessage = "Пользователь не найден";
+    private final String NOT_FOUND_USER_MESSAGE = "Пользователь не найден";
 
     @Override
     public UserDto getUser(Long userId) {
@@ -71,8 +71,8 @@ public class UserServiceImpl implements UserService {
 
     private void throwIfNoUser(User user) {
         if (user == null) {
-            log.warn(notFoundUserMessage);
-            throw new NotFoundException(notFoundUserMessage);
+            log.warn(NOT_FOUND_USER_MESSAGE);
+            throw new NotFoundException(NOT_FOUND_USER_MESSAGE);
         }
     }
 
@@ -97,8 +97,8 @@ public class UserServiceImpl implements UserService {
                 throw new ValidationException("Email уже занят другим пользователем");
             }
         } else {
-            log.warn(notFoundUserMessage);
-            throw new NotFoundException(notFoundUserMessage);
+            log.warn(NOT_FOUND_USER_MESSAGE);
+            throw new NotFoundException(NOT_FOUND_USER_MESSAGE);
         }
     }
 

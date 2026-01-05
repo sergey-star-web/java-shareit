@@ -23,15 +23,15 @@ import java.util.stream.Collectors;
 public class BookingServiceImpl implements BookingService {
     private final BookingRepository repository;
     private final ItemServiceImpl itemServiceImpl;
-    private final String notFoundItemMessage = "Вещь не найдена";
-    private final String notFoundBookingMessage = "Бронирование не найдено";
+    private final String NOT_FOUND_ITEM_MESSAGE = "Вещь не найдена";
+    private final String NOT_FOUND_BOOKING_MESSAGE = "Бронирование не найдено";
 
     @Override
     public BookingDto getBooking(Long userId, Long bookingId) {
         log.info("Получен запрос на получение конкретного бронирования: {}", bookingId);
         baseValidate(userId);
         Booking booking = repository.findById(bookingId)
-                .orElseThrow(() -> new NotFoundException(notFoundBookingMessage));
+                .orElseThrow(() -> new NotFoundException(NOT_FOUND_BOOKING_MESSAGE));
         ItemDto itemDto = itemServiceImpl.getItem(booking.getItemId());
         // Проверяем, что текущий пользователь является автором бронирования или владельцем вещи
         if (!booking.getBookerId().equals(userId) && !itemDto.getOwnerId().equals(userId)) {
@@ -50,7 +50,7 @@ public class BookingServiceImpl implements BookingService {
         log.info("Получен запрос на добавление бронирования: {}", bookingRequestDto);
         Long itemId = bookingRequestDto.getItemId();
         if (itemId == null) {
-            throw new ValidationException(notFoundItemMessage);
+            throw new ValidationException(NOT_FOUND_ITEM_MESSAGE);
         }
         ItemDto itemDto = itemServiceImpl.getItem(itemId);
         validate(bookingRequestDto, itemDto, userId);
@@ -76,7 +76,7 @@ public class BookingServiceImpl implements BookingService {
         log.info("Получен запрос на обновление брони: " + bookingId + " status: " + approved + " поль-ель: " + userId);
         // Находим бронирование по bookingId
         Booking booking = repository.findById(bookingId)
-                .orElseThrow(() -> new NotFoundException(notFoundBookingMessage));
+                .orElseThrow(() -> new NotFoundException(NOT_FOUND_BOOKING_MESSAGE));
 
         // Проверяем, что текущий пользователь является владельцем вещи
         ItemDto itemDto = itemServiceImpl.getItem(booking.getItemId());
@@ -178,8 +178,8 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void throwIfNoItem() {
-        log.warn(notFoundItemMessage);
-        throw new NotFoundException(notFoundItemMessage);
+        log.warn(NOT_FOUND_ITEM_MESSAGE);
+        throw new NotFoundException(NOT_FOUND_ITEM_MESSAGE);
     }
 
     private void baseValidate(Long userId) {

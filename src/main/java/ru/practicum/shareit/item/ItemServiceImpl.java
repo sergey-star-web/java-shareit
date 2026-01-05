@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.Booking;
 import ru.practicum.shareit.booking.BookingRepository;
-import ru.practicum.shareit.booking.BookingStatus;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.dto.CommentDto;
@@ -31,13 +30,7 @@ public class ItemServiceImpl implements ItemService {
     private final BookingRepository bookingRepository;
     private final CommentRepository commentRepository;
     private final UserServiceImpl userService;
-    private final String notFoundItemMessage = "Вещь не найдена";
-
-    @Override
-    public List<ItemDto> getItems(Long userId) {
-        List<Item> items = repository.findByOwnerId(userId);
-        return ItemMapper.toItemsDto(items);
-    }
+    private final String NOT_FOUND_ITEM_MESSAGE = "Вещь не найдена";
 
     @Override
     public ItemDto getItem(Long itemId) {
@@ -48,7 +41,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemCommDto getItemComm(Long itemId) {
-        Item item = repository.findById(itemId).orElseThrow(() -> new NotFoundException(notFoundItemMessage));
+        Item item = repository.findById(itemId).orElseThrow(() -> new NotFoundException(NOT_FOUND_ITEM_MESSAGE));
         ItemCommDto itemCommDto = ItemMapper.toItemCommDto(item);
         List<Booking> bookings = bookingRepository.findAllByItemId(item.getId());
         BookingDate bookingDate = setBookingDates(bookings);
@@ -95,7 +88,7 @@ public class ItemServiceImpl implements ItemService {
             throw new ValidationException("Пользователь не может оставить комментарий, так как не брал вещь в аренду");
         }
 
-        comment.setItem(repository.findById(itemId).orElseThrow(() -> new IllegalArgumentException(notFoundItemMessage)));
+        comment.setItem(repository.findById(itemId).orElseThrow(() -> new IllegalArgumentException(NOT_FOUND_ITEM_MESSAGE)));
         comment.setCreated(LocalDateTime.now());
         comment.setAuthorId(userId);
         Long id = commentRepository.save(comment).getId();
@@ -189,18 +182,18 @@ public class ItemServiceImpl implements ItemService {
 
     private boolean checkIfUserRentedItem(Long userId, Long itemId) {
         // Получаем все бронирования текущего пользователя
-        List<Booking> userBookings = bookingRepository.findAllByBookerId(userId)
-                .stream().filter(b -> !b.getStatus().equals(BookingStatus.WAITING)).toList()
-                ;
-        // Проверяем, есть ли среди бронирований пользователя то, которое относится к нужной вещи
+        List<Booking> userBookings = bookingRepository.findAllByBookerId(userId);
 
-        return userBookings.stream().anyMatch(booking -> booking.getItemId().equals(itemId));
+        // Проверяем, есть ли среди бронирований пользователя то, которое относится к нужной вещи
+        // и срок аренды которого уже закончился
+        return userBookings.stream()
+                .anyMatch(booking -> booking.getItemId().equals(itemId) && booking.getEnd().isBefore(LocalDateTime.now()));
     }
 
     private void throwIfNoItem(Item item) {
         if (item == null) {
-            log.warn(notFoundItemMessage);
-            throw new NotFoundException(notFoundItemMessage);
+            log.warn(NOT_FOUND_ITEM_MESSAGE);
+            throw new NotFoundException(NOT_FOUND_ITEM_MESSAGE);
         }
     }
 
@@ -222,8 +215,8 @@ public class ItemServiceImpl implements ItemService {
 
     private ItemDto validateItem(ItemDto itemDto, Long userId, Item itemFromRepos) {
         if (itemDto == null) {
-            log.warn(notFoundItemMessage);
-            throw new NotFoundException(notFoundItemMessage);
+            log.warn(NOT_FOUND_ITEM_MESSAGE);
+            throw new NotFoundException(NOT_FOUND_ITEM_MESSAGE);
         }
         //Если вещь уже существует, значит происходит update
         if (itemFromRepos != null) {
