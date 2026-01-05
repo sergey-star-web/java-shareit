@@ -30,7 +30,7 @@ public class ItemServiceImpl implements ItemService {
     private final BookingRepository bookingRepository;
     private final CommentRepository commentRepository;
     private final UserServiceImpl userService;
-    private final String NOT_FOUND_ITEM_MESSAGE = "Вещь не найдена";
+    private static final String NOT_FOUND_ITEM_MESSAGE = "Вещь не найдена";
 
     @Override
     public ItemDto getItem(Long itemId) {

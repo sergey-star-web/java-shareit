@@ -23,8 +23,8 @@ import java.util.stream.Collectors;
 public class BookingServiceImpl implements BookingService {
     private final BookingRepository repository;
     private final ItemServiceImpl itemServiceImpl;
-    private final String NOT_FOUND_ITEM_MESSAGE = "Вещь не найдена";
-    private final String NOT_FOUND_BOOKING_MESSAGE = "Бронирование не найдено";
+    private static final String NOT_FOUND_ITEM_MESSAGE = "Вещь не найдена";
+    private static final String NOT_FOUND_BOOKING_MESSAGE = "Бронирование не найдено";
 
     @Override
     public BookingDto getBooking(Long userId, Long bookingId) {

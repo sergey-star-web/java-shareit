@@ -17,7 +17,7 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
     private final UserRepository repository;
-    private final String NOT_FOUND_USER_MESSAGE = "Пользователь не найден";
+    private static final String NOT_FOUND_USER_MESSAGE = "Пользователь не найден";
 
     @Override
     public UserDto getUser(Long userId) {
