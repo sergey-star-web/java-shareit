@@ -141,8 +141,7 @@ public class ItemServiceImpl implements ItemService {
         return itemDtos;
     }
 
-    @Override
-    public Boolean checkIfUserRentedItem(Long userId, Long itemId) {
+    private Boolean checkIfUserRentedItem(Long userId, Long itemId) {
         // Получаем все бронирования текущего пользователя
         List<Booking> userBookings = bookingService.getBookerBookings(userId);
 

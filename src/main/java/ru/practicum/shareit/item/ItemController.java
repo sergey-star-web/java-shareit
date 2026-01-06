@@ -7,7 +7,6 @@ import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemCommDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemListDto;
-import ru.practicum.shareit.item.valid.UserRentedItemValid;
 
 import java.util.List;
 
@@ -46,8 +45,8 @@ public class ItemController {
     }
 
     @PostMapping("/{itemId}/comment")
-    public CommentDto addComment(@PathVariable Long itemId, @RequestBody @UserRentedItemValid @Valid CommentDto comment,
-                                 @RequestHeader("X-Sharer-User-Id") Long userId) {
+    public CommentDto addComment(@PathVariable Long itemId, @RequestHeader("X-Sharer-User-Id") Long userId,
+                                 @RequestBody @Valid CommentDto comment) {
         return itemService.addComment(itemId, comment, userId);
     }
 }

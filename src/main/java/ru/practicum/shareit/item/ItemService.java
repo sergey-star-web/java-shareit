@@ -21,6 +21,4 @@ public interface ItemService {
     List<ItemDto> getAvailableItems(String searchText, Long userId);
 
     CommentDto addComment(Long itemId, CommentDto commentDto, Long userId);
-
-    Boolean checkIfUserRentedItem(Long userId, Long itemId);
 }
