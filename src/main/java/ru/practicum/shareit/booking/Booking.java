@@ -2,6 +2,7 @@ package ru.practicum.shareit.booking;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import ru.practicum.shareit.item.model.Item;
 
 import java.time.LocalDateTime;
 
@@ -18,7 +19,12 @@ public class Booking {
     private LocalDateTime end;
     @Column(name = "item_id")
     private Long itemId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "item_id", insertable = false, updatable = false)
+    private Item item;
     @Column(name = "booker_id")
     private Long bookerId;
+    @Column(name = "status")
+    @Enumerated(EnumType.STRING)
     private BookingStatus status;
 }

@@ -133,7 +133,8 @@ public class ItemServiceImpl implements ItemService {
         for (Item item : items) {
             List<Booking> itemBookings = bookingsByItemId.getOrDefault(item.getId(), Collections.emptyList());
             BookingDate bookingDate = setBookingDates(itemBookings);
-            ItemListDto itemDto = new ItemListDto(item.getId(), item.getName(), bookingDate.getLastBookingDate(), bookingDate.getNextBookingDate());
+            ItemListDto itemDto = new ItemListDto(item.getId(), item.getName(), bookingDate.getLastBookingDate(),
+                    bookingDate.getNextBookingDate());
 
             itemDtos.add(itemDto);
         }
@@ -148,7 +149,8 @@ public class ItemServiceImpl implements ItemService {
         // Проверяем, есть ли среди бронирований пользователя то, которое относится к нужной вещи
         // и срок аренды которого уже закончился
         return userBookings.stream()
-                .anyMatch(booking -> booking.getItemId().equals(itemId) && booking.getEnd().isBefore(LocalDateTime.now()));
+                .anyMatch(booking -> booking.getItemId().equals(itemId)
+                        && booking.getEnd().isBefore(LocalDateTime.now()));
     }
 
     private BookingDate setBookingDates(List<Booking> bookings) {
