@@ -3,64 +3,78 @@ package ru.practicum.shareit.user;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 
+import java.util.List;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
     private final UserRepository repository;
-    private final String notFoundUserMessage = "Пользователь не найден";
-    private Integer idCounter = 1;
+    private static final String NOT_FOUND_USER_MESSAGE = "Пользователь не найден";
 
     @Override
-    public UserDto getUser(Integer userId) {
-        User user = repository.findByUserId(userId);
-        return UserMapper.toUserDto(user);
+    public UserDto getUser(Long userId) {
+        return repository.findById(userId)
+                .map(UserMapper::toUserDto)
+                .orElse(null);
     }
 
     @Override
+    public List<UserDto> getUsers() {
+        List<User> users = repository.findAll();
+        return UserMapper.toUsersDto(users);
+    }
+
+    @Override
+    @Transactional
     public UserDto addUser(UserDto userDto) {
         log.info("Получен запрос на создание пользователя: {}", userDto);
-        userDto.setId(genNextId());
         validateUser(userDto);
-        User userSave = getFullUser(userDto);
-        repository.save(userSave);
-        log.info("Пользователь успешно создан. Созданный пользователь: {}", userSave);
+        User userSave = UserMapper.toUser(userDto);
+        Long id = repository.save(userSave).getId();
+        userDto.setId(id);
+        log.info("Пользователь успешно создан. Созданный пользователь: {}", userDto);
         return userDto;
     }
 
     @Override
-    public UserDto updateUser(Integer userId, UserDto userDto) {
+    @Transactional
+    public UserDto updateUser(Long userId, UserDto userDto) {
         log.info("Получен запрос на обновление пользователя: {}", userDto);
-        User user = repository.findByUserId(userId);
-        throwIfNoUser(user);
+        User user = repository.findById(userId).orElse(null);
+        if (user == null) {
+            log.warn(NOT_FOUND_USER_MESSAGE);
+            throw new NotFoundException(NOT_FOUND_USER_MESSAGE);
+        }
         UserDto userDtoUpdate = setUserFields(user, userDto);
         validateUser(userDtoUpdate);
         User userUpdate = getFullUser(userDtoUpdate);
-        repository.update(userId, userUpdate);
+        repository.save(userUpdate);
         log.info("Пользователь успешно обновлен. Измененный пользователь: {}", userUpdate);
         return userDtoUpdate;
     }
 
     @Override
-    public UserDto deleteUser(Integer userId) {
-        User user = repository.delete(userId);
-        return UserMapper.toUserDto(user);
-    }
-
-    private Integer genNextId() {
-        return idCounter++;
-    }
-
-    private void throwIfNoUser(User user) {
-        if (user == null) {
-            log.warn(notFoundUserMessage);
-            throw new NotFoundException(notFoundUserMessage);
+    @Transactional
+    public UserDto deleteUser(Long userId) {
+        User user = repository.findById(userId).orElse(null);
+        if (user != null) {
+            repository.delete(user);
+            return UserMapper.toUserDto(user);
         }
+        return null;
+    }
+
+    @Override
+    public Boolean existsUser(Long userId) {
+        return repository.existsById(userId);
     }
 
     private UserDto setUserFields(User userFromRepos, UserDto userDtoUpdate) {
@@ -84,13 +98,13 @@ public class UserServiceImpl implements UserService {
                 throw new ValidationException("Email уже занят другим пользователем");
             }
         } else {
-            log.warn(notFoundUserMessage);
-            throw new NotFoundException(notFoundUserMessage);
+            log.warn(NOT_FOUND_USER_MESSAGE);
+            throw new NotFoundException(NOT_FOUND_USER_MESSAGE);
         }
     }
 
-    private boolean isUserWithEmailExists(String email, Integer userId) {
-        for (User user : repository.getUsers().values()) {
+    private boolean isUserWithEmailExists(String email, Long userId) {
+        for (User user : repository.findAll()) {
             if (user.getEmail().equals(email) && !user.getId().equals(userId)) {
                 return true;
             }
