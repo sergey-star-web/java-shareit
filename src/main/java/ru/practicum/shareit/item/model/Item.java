@@ -2,6 +2,7 @@ package ru.practicum.shareit.item.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import ru.practicum.shareit.request.ItemRequest;
 
 @Entity
 @Table(name = "items", schema = "public")
@@ -18,4 +19,7 @@ public class Item {
     private Long ownerId;
     @Column(name = "request_id")
     private Long requestId;
+    @ManyToOne
+    @JoinColumn(name = "request_id", insertable=false, updatable=false)
+    private ItemRequest request;
 }

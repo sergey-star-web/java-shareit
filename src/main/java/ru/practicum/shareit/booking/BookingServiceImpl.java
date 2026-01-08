@@ -132,9 +132,10 @@ public class BookingServiceImpl implements BookingService {
                 bookings = repository.findAllByBookerIdAndStatusOrderByStartDesc(userId, BookingStatus.REJECTED);
                 break;
             case ALL:
-            default:
                 bookings = repository.findAllByBookerIdOrderByStartDesc(userId);
                 break;
+            default:
+                return Collections.emptyList();
         }
 
         HashMap<Long, String> itemsMap  = new HashMap<>();
@@ -173,9 +174,10 @@ public class BookingServiceImpl implements BookingService {
                 bookings = repository.findAllByBookerIdAndStatusOrderByStartDesc(userId, BookingStatus.REJECTED);
                 break;
             case ALL:
-            default:
                 bookings = repository.findAllByBookerIdOrderByStartDesc(userId);
                 break;
+            default:
+                return Collections.emptyList();
         }
 
         return bookings.stream()
