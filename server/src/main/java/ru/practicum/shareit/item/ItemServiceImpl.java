@@ -226,13 +226,18 @@ public class ItemServiceImpl implements ItemService {
                 throw new NotFoundException("Редактировать вещь может только владелец. id пользователя: "
                         + userId + " id владельца вещи: " + itemFromRepos.getOwnerId());
             }
-        }
-        if (itemDto.getAvailable() == null) {
-            throw new ValidationException("Статус о доступности вещи не может быть пустым");
-        } else if (itemDto.getName() == null || itemDto.getName().isEmpty()) {
-            throw new ValidationException("Наименование вещи не может быть пустым");
-        } else if (itemDto.getDescription() == null) {
-            throw new ValidationException("Описание вещи не может быть пустым");
+            if (itemDto.getAvailable() == null) {
+                log.error("Статус о доступности вещи не может быть пустым");
+                throw new ValidationException("Статус о доступности вещи не может быть пустым");
+            }
+            if (itemDto.getName() == null || itemDto.getName().isEmpty()) {
+                log.error("Наименование вещи не может быть пустым");
+                throw new ValidationException("Наименование вещи не может быть пустым");
+            }
+            if (itemDto.getDescription() == null) {
+                log.error("Описание вещи не может быть пустым");
+                throw new ValidationException("Описание вещи не может быть пустым");
+            }
         }
         if (!userService.existsUser(userId)) {
             String errorMessage = String.format("Не найден пользователь с ID %d", userId);

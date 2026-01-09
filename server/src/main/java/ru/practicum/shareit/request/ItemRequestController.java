@@ -1,12 +1,12 @@
 package ru.practicum.shareit.request;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.request.dto.ItemsRequestDto;
 import ru.practicum.shareit.request.dto.RequestDto;
 
-import jakarta.validation.Valid;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -16,8 +16,8 @@ public class ItemRequestController {
     private final ItemRequestService itemRequestService;
 
     @PostMapping
-    public ItemRequestDto createRequest(
-            @RequestHeader("X-Sharer-User-Id") Long userId, @RequestBody @Valid RequestDto request) {
+    public ItemRequestDto createRequest(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                        @RequestBody @Valid RequestDto request) {
         return itemRequestService.createRequest(request, userId);
     }
 

@@ -7,6 +7,8 @@ import java.util.List;
 public interface ItemService {
     List<ItemListDto> getItemsWithBookingDates(Long userId);
 
+    List<ItemDto> getAvailableItems(String searchText, Long userId);
+
     ItemDto getItem(Long itemId);
 
     ItemCommDto getItemById(Long itemId);
@@ -14,8 +16,6 @@ public interface ItemService {
     ItemDto addItem(Long userId, ItemDto itemDto);
 
     ItemDto updateItem(Long userId, Long itemId, ItemDto itemDto);
-
-    List<ItemDto> getAvailableItems(String searchText, Long userId);
 
     CommentDto addComment(Long itemId, CommentDto commentDto, Long userId);
 }
