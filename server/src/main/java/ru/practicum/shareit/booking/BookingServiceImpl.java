@@ -57,7 +57,7 @@ public class BookingServiceImpl implements BookingService {
         }
         Item item = itemRepository.findById(itemId).orElseThrow(() ->
                 new NotFoundException(NOT_FOUND_ITEM_MESSAGE));
-        validate(bookingRequestDto, item, userId);
+        validate(item, userId);
 
         // Создаем бронирование в статусе WAITING
         Booking booking = BookingMapper.toBooking(bookingRequestDto);
@@ -227,7 +227,7 @@ public class BookingServiceImpl implements BookingService {
         }
     }
 
-    private void validate(BookingRequestDto bookingRequestDto, Item item, Long userId) {
+    private void validate(Item item, Long userId) {
         // снова проверяем на существование вещи
         if (item == null) {
             log.warn(NOT_FOUND_ITEM_MESSAGE);
@@ -236,12 +236,6 @@ public class BookingServiceImpl implements BookingService {
         baseValidate(userId);
         if (!item.getAvailable()) {
             throw new AvailableException("Вещь недоступна");
-        }
-        if (bookingRequestDto.getStart() == bookingRequestDto.getEnd()) {
-            throw new ValidationException("Дата начала брони не может быть равна дате конца брони");
-        }
-        if (bookingRequestDto.getEnd().isBefore(bookingRequestDto.getStart())) {
-            throw new ValidationException("Дата конца брони не может быть раньше даты начала брони");
         }
     }
 }
