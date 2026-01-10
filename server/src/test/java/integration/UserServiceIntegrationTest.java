@@ -21,10 +21,9 @@ import ru.practicum.shareit.user.UserServiceImpl;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 
-
 @SpringBootTest
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 @SpringJUnitConfig({UserServiceImpl.class, BookingServiceImpl.class, ItemServiceImpl.class, AppConfig.class,
         PersistenceConfig.class})
 public class UserServiceIntegrationTest {
