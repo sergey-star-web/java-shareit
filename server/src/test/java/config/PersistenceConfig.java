@@ -17,7 +17,7 @@ import java.util.Properties;
 @Configuration
 @RequiredArgsConstructor
 @EnableTransactionManagement
-@EnableJpaRepositories(basePackages = "ru.practicum")
+@EnableJpaRepositories(basePackages = "ru.practicum.shareit")
 public class PersistenceConfig {
     private final Environment environment;
 
