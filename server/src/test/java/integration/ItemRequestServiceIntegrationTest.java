@@ -27,9 +27,9 @@ import static org.assertj.core.api.Assertions.*;
 @SpringJUnitConfig({UserServiceImpl.class, BookingServiceImpl.class, ItemServiceImpl.class,
         ItemRequestServiceImpl.class, PersistenceConfig.class})
 public class ItemRequestServiceIntegrationTest {
-    @Autowired(required = false)
+    @Autowired
     private ItemRequestService itemRequestService;
-    @Autowired(required = false)
+    @Autowired
     private UserService userService;
 
     @Test
