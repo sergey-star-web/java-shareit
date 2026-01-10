@@ -74,6 +74,20 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    public Booking addBooking(Booking booking) {
+        log.info("Получен запрос на добавление бронирования: {}", booking);
+        Long itemId = booking.getItemId();
+        if (itemId == null) {
+            throw new ValidationException(NOT_FOUND_ITEM_MESSAGE);
+        }
+        Item item = itemRepository.findById(itemId).orElseThrow(() ->
+                new NotFoundException(NOT_FOUND_ITEM_MESSAGE));
+        validate(item, booking.getBookerId());
+        booking.setId(repository.save(booking).getId());
+        return booking;
+    }
+
+    @Override
     @Transactional
     public BookingDto updateBooking(Long userId, Long bookingId, Boolean approved) {
         log.info("Получен запрос на обновление брони: " + bookingId + " status: " + approved + " поль-ель: " + userId);

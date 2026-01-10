@@ -21,5 +21,7 @@ public interface BookingService {
 
     BookingDto addBooking(Long userId, BookingRequestDto bookingRequestDto);
 
+    Booking addBooking(Booking booking);
+
     BookingDto updateBooking(Long userId, Long bookingId, Boolean approved);
 }

@@ -5,12 +5,12 @@ import java.time.LocalDateTime;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
+import lombok.Data;
 
-@Getter
+@Data
 public class BookItemRequestDto {
 	private long itemId;
-	@FutureOrPresent@NotNull(message = "Дата начала брони не может быть пустым")
+	@FutureOrPresent @NotNull(message = "Дата начала брони не может быть пустым")
 	@Future(message = "Дата начала должна быть в будущем")
 	private LocalDateTime start;
 	@NotNull(message = "Дата конца брони не может быть пустым")
