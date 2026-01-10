@@ -34,6 +34,7 @@ public class UserControllerTest {
                 .standaloneSetup(controller)
                 .build();
     }
+
     // Пример данных
     private UserDto createSampleUserDto(Long id, String name, String email) {
         UserDto userDto = new UserDto();

@@ -26,6 +26,6 @@ public class Item {
     @Column(name = "request_id")
     private Long requestId;
     @ManyToOne
-    @JoinColumn(name = "request_id", insertable=false, updatable=false)
+    @JoinColumn(name = "request_id", insertable = false, updatable = false)
     private ItemRequest request;
 }

@@ -36,6 +36,7 @@ public class BookingControllerTest {
     private BookingService bookingService;
     @InjectMocks
     private BookingController controller;
+
     @BeforeEach
     void setup() {
         mvc = MockMvcBuilders.standaloneSetup(controller).build();
