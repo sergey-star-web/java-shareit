@@ -33,7 +33,6 @@ public class UserServiceIntegrationTest {
     private final UserService userService;
 
     @Test
-    @Rollback
     void testUpdateUser_Success() {
         // 1. Создаем тестового пользователя
         User originalUser = new User();
@@ -58,7 +57,6 @@ public class UserServiceIntegrationTest {
     }
 
     @Test
-    @Rollback
     void testUpdateUser_UserNotFound() {
         Long nonExistingUserId = 999L;
 
@@ -74,7 +72,6 @@ public class UserServiceIntegrationTest {
     }
 
     @Test
-    @Rollback
     void testUpdateUser_InvalidEmail_ShouldThrowValidationException() {
         User originalUser = new User();
         originalUser.setName("Иван");
