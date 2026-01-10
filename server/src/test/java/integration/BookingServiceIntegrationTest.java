@@ -2,12 +2,9 @@ package integration;
 
 import config.AppConfig;
 import config.PersistenceConfig;
-import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.*;
@@ -28,17 +25,17 @@ import java.util.List;
 
 @Transactional
 @SpringBootTest
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @SpringJUnitConfig({UserServiceImpl.class, BookingServiceImpl.class, ItemServiceImpl.class, AppConfig.class,
         PersistenceConfig.class})
 public class BookingServiceIntegrationTest {
-    private final BookingService bookingService;
-    private final ItemService itemService;
-    private final UserService userService;
+    @Autowired
+    private BookingService bookingService;
+    @Autowired
+    private ItemService itemService;
+    @Autowired
+    private UserService userService;
 
     @Test
-    @Rollback
     void testGetUserBookings_CurrentsPastFutureWaitingRejected() {
         // 1. Создаем пользователя
         User user = new User();

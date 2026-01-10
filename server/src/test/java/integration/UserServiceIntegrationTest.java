@@ -3,12 +3,11 @@ package integration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.Rollback;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import static org.assertj.core.api.Assertions.*;
 
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.*;
 import config.AppConfig;
 import config.PersistenceConfig;
@@ -23,9 +22,8 @@ import ru.practicum.shareit.user.UserServiceImpl;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 
-@Rollback
+@Transactional
 @SpringBootTest
-@TestPropertySource(properties = { "jdbc.url=jdbc:postgresql://localhost:5432/test"})
 @SpringJUnitConfig({UserServiceImpl.class, BookingServiceImpl.class, ItemServiceImpl.class, AppConfig.class,
         PersistenceConfig.class, UserRepository.class, BookingRepository.class, ItemRepository.class,})
 public class UserServiceIntegrationTest {
