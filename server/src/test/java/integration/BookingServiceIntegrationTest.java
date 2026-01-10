@@ -25,8 +25,7 @@ import java.util.List;
 
 @Transactional
 @SpringBootTest
-@SpringJUnitConfig({UserServiceImpl.class, BookingServiceImpl.class, ItemServiceImpl.class, AppConfig.class,
-        PersistenceConfig.class})
+@SpringJUnitConfig({UserServiceImpl.class, BookingServiceImpl.class, ItemServiceImpl.class, PersistenceConfig.class})
 public class BookingServiceIntegrationTest {
     @Autowired
     private BookingService bookingService;

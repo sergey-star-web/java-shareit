@@ -50,7 +50,7 @@ public class PersistenceConfig {
 
         emf.setDataSource(dataSource);
         emf.setJpaVendorAdapter(vendorAdapter);
-        emf.setPackagesToScan("ru.practicum");
+        emf.setPackagesToScan("ru.practicum.shareit");
         emf.setJpaProperties(hibernateProperties());
 
         return emf;

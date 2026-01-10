@@ -9,14 +9,11 @@ import static org.assertj.core.api.Assertions.*;
 
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.*;
-import config.AppConfig;
 import config.PersistenceConfig;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
-import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.ItemServiceImpl;
 import ru.practicum.shareit.user.UserMapper;
-import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.UserService;
 import ru.practicum.shareit.user.UserServiceImpl;
 import ru.practicum.shareit.user.dto.UserDto;
@@ -24,8 +21,7 @@ import ru.practicum.shareit.user.model.User;
 
 @Transactional
 @SpringBootTest
-@SpringJUnitConfig({UserServiceImpl.class, BookingServiceImpl.class, ItemServiceImpl.class, AppConfig.class,
-        PersistenceConfig.class, UserRepository.class, BookingRepository.class, ItemRepository.class,})
+@SpringJUnitConfig({UserServiceImpl.class, BookingServiceImpl.class, ItemServiceImpl.class, PersistenceConfig.class})
 public class UserServiceIntegrationTest {
     @Autowired
     private UserService userService;
