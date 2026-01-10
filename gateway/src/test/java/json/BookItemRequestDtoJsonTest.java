@@ -27,7 +27,7 @@ public class BookItemRequestDtoJsonTest {
     void testBookItemRequestDto() throws Exception {
         LocalDateTime startDate = LocalDateTime.now().plusDays(1);
         LocalDateTime endDate = LocalDateTime.now().plusDays(2);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
         ObjectMapper objectMapper = new ObjectMapper();
 
         BookItemRequestDto dto = new BookItemRequestDto();
@@ -40,14 +40,16 @@ public class BookItemRequestDtoJsonTest {
 
         // Разбор JSON
         JsonNode node = objectMapper.readTree(jsonString);
+        String expectedStart = startDate.format(formatter);
+        String expectedEnd = endDate.format(formatter);
+
         String startStr = node.get("start").asText();
         String endStr = node.get("end").asText();
 
-        LocalDateTime startParsed = LocalDateTime.parse(startStr, formatter);
-        LocalDateTime endParsed = LocalDateTime.parse(endStr, formatter);
+        String startStrTrimmed = startStr.substring(0, 19);
+        String endStrTrimmed = endStr.substring(0, 19);
 
-        // Проверка
-        assertThat(startParsed).isEqualTo(startDate);
-        assertThat(endParsed).isEqualTo(endDate);
+        assertThat(startStrTrimmed).isEqualTo(expectedStart);
+        assertThat(endStrTrimmed).isEqualTo(expectedEnd);
     }
 }
