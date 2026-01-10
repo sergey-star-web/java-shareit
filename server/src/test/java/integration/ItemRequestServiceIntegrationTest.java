@@ -4,6 +4,7 @@ import config.PersistenceConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.request.ItemRequestService;
@@ -22,6 +23,7 @@ import static org.assertj.core.api.Assertions.*;
 
 @Transactional
 @SpringBootTest
+@ActiveProfiles("test")
 @SpringJUnitConfig({ItemRequestServiceImpl.class, UserServiceImpl.class, PersistenceConfig.class})
 public class ItemRequestServiceIntegrationTest {
     @Autowired
