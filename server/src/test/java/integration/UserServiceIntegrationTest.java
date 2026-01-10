@@ -1,6 +1,5 @@
 package integration;
 
-import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -10,7 +9,6 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import static org.assertj.core.api.Assertions.*;
 
-import ru.practicum.shareit.ShareItApp;
 import ru.practicum.shareit.booking.*;
 import config.AppConfig;
 import config.PersistenceConfig;
@@ -26,13 +24,13 @@ import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 
 @Rollback
-@SpringBootTest(classes = ShareItApp.class)
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
+@SpringBootTest
 @TestPropertySource(properties = { "jdbc.url=jdbc:postgresql://localhost:5432/test"})
 @SpringJUnitConfig({UserServiceImpl.class, BookingServiceImpl.class, ItemServiceImpl.class, AppConfig.class,
         PersistenceConfig.class, UserRepository.class, BookingRepository.class, ItemRepository.class,})
 public class UserServiceIntegrationTest {
-    private final UserService userService;
+    @Autowired
+    private UserService userService;
 
     @Test
     void testUpdateUser_Success() {
