@@ -29,7 +29,6 @@ import static org.assertj.core.api.Assertions.*;
 @SpringBootTest
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Sql(scripts = "/schema.sql")
 @SpringJUnitConfig({ItemRequestServiceImpl.class, UserServiceImpl.class, AppConfig.class, PersistenceConfig.class})
 public class ItemRequestServiceIntegrationTest {
     private final ItemRequestService itemRequestService;
