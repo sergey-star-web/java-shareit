@@ -1,19 +1,15 @@
 package integration;
 
-import config.PersistenceConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.ShareItApp;
 import ru.practicum.shareit.request.ItemRequestService;
-import ru.practicum.shareit.request.ItemRequestServiceImpl;
 import ru.practicum.shareit.request.dto.ItemsRequestDto;
 import ru.practicum.shareit.request.dto.RequestDto;
 import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.UserService;
-import ru.practicum.shareit.user.UserServiceImpl;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 
@@ -22,13 +18,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.*;
 
 @Transactional
-@SpringBootTest
-@ActiveProfiles("test")
-@SpringJUnitConfig({ItemRequestServiceImpl.class, UserServiceImpl.class, PersistenceConfig.class})
+@SpringBootTest(classes = ShareItApp.class)
 public class ItemRequestServiceIntegrationTest {
-    @Autowired
+    @Autowired(required = false)
     private ItemRequestService itemRequestService;
-    @Autowired
+    @Autowired(required = false)
     private UserService userService;
 
     @Test
