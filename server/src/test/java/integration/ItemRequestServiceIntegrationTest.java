@@ -3,6 +3,7 @@ package integration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.ShareItApp;
 import ru.practicum.shareit.request.ItemRequestService;
@@ -19,10 +20,11 @@ import static org.assertj.core.api.Assertions.*;
 
 @Transactional
 @SpringBootTest(classes = ShareItApp.class)
+@TestPropertySource(properties = "spring.main.web-application-type=none")
 public class ItemRequestServiceIntegrationTest {
-    @Autowired(required = false)
+    @Autowired
     private ItemRequestService itemRequestService;
-    @Autowired(required = false)
+    @Autowired
     private UserService userService;
 
     @Test
