@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.*;
 
 @Transactional
 @SpringBootTest
-@SpringJUnitConfig({ItemRequestServiceImpl.class, UserServiceImpl.class, AppConfig.class, PersistenceConfig.class})
+@SpringJUnitConfig({ItemRequestServiceImpl.class, UserServiceImpl.class, PersistenceConfig.class})
 public class ItemRequestServiceIntegrationTest {
     @Autowired
     private ItemRequestService itemRequestService;
