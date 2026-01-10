@@ -37,8 +37,8 @@ public class BookItemRequestDtoJsonTest {
         // Проверки
         assertThat(content).extractingJsonPathNumberValue("$.itemId").isEqualTo(123);
         assertThat(content).extractingJsonPathStringValue("$.start")
-                .isEqualTo(startDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSS")));
+                .isEqualTo(startDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS")));
         assertThat(content).extractingJsonPathStringValue("$.end")
-                .isEqualTo(endDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSS")));
+                .isEqualTo(endDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS")));
     }
 }
