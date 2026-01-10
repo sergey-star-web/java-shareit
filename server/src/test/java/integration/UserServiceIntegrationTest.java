@@ -3,25 +3,18 @@ package integration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import static org.assertj.core.api.Assertions.*;
 
-import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.shareit.booking.*;
-import config.PersistenceConfig;
+import ru.practicum.shareit.ShareItApp;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
-import ru.practicum.shareit.item.ItemServiceImpl;
 import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.UserService;
-import ru.practicum.shareit.user.UserServiceImpl;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 
-@Transactional
-@SpringBootTest
-@SpringJUnitConfig({UserServiceImpl.class, BookingServiceImpl.class, ItemServiceImpl.class, PersistenceConfig.class})
+@SpringBootTest(classes = ShareItApp.class)
 public class UserServiceIntegrationTest {
     @Autowired
     private UserService userService;
