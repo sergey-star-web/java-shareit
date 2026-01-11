@@ -1,6 +1,7 @@
 package ru.practicum.shareit.item;
 
 import ru.practicum.shareit.item.dto.*;
+import ru.practicum.shareit.item.model.Item;
 
 import java.util.List;
 
@@ -18,4 +19,6 @@ public interface ItemService {
     ItemDto updateItem(Long userId, Long itemId, ItemDto itemDto);
 
     CommentDto addComment(Long itemId, CommentDto commentDto, Long userId);
+
+    ItemDto validateItem(ItemDto itemDto, Long userId, Item itemFromRepos);
 }

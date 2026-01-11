@@ -22,6 +22,7 @@ import ru.practicum.shareit.booking.BookingStatus;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.BookingRequestDto;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
@@ -31,7 +32,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 public class BookingControllerTest {
     private MockMvc mvc;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper()
+            .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
     @Mock
     private BookingService bookingService;
     @InjectMocks
@@ -47,12 +49,16 @@ public class BookingControllerTest {
         BookingDto dto = new BookingDto();
         dto.setId(id);
         dto.setStatus(BookingStatus.valueOf(status));
+        dto.setStart(LocalDateTime.now().plusDays(1));
+        dto.setEnd(LocalDateTime.now().plusDays(2));
         return dto;
     }
 
     private BookingRequestDto createBookingRequestDto() {
         BookingRequestDto dto = new BookingRequestDto();
         dto.setItemId(111L);
+        dto.setStart(LocalDateTime.now().plusDays(1));
+        dto.setEnd(LocalDateTime.now().plusDays(2));
         return dto;
     }
 

@@ -3,8 +3,9 @@ package integration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import ru.practicum.shareit.ShareItApp;
+import ru.practicum.shareit.ShareItServer;
 import ru.practicum.shareit.request.ItemRequestService;
+import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.request.dto.ItemsRequestDto;
 import ru.practicum.shareit.request.dto.RequestDto;
 import ru.practicum.shareit.user.UserMapper;
@@ -12,11 +13,9 @@ import ru.practicum.shareit.user.UserService;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 
-import java.util.List;
+import static org.junit.jupiter.api.Assertions.*;
 
-import static org.assertj.core.api.Assertions.*;
-
-@SpringBootTest(classes = ShareItApp.class)
+@SpringBootTest(classes = ShareItServer.class)
 public class ItemRequestServiceIntegrationTest {
     @Autowired
     private ItemRequestService itemRequestService;
@@ -24,30 +23,29 @@ public class ItemRequestServiceIntegrationTest {
     private UserService userService;
 
     @Test
-    void testGetUserRequests_ReturnsRequests() {
+    void testGetRequestById_ReturnsDtoWhenExistsAndNullWhenNotFound() {
+        // Создаем пользователя
         User originalUser = new User();
         originalUser.setName("Иван");
         originalUser.setEmail("ivan@example.com");
-        // сохранить пользователя (предположим, есть метод)
         UserDto savedUser = userService.addUser(UserMapper.toUserDto(originalUser));
         Long userId = savedUser.getId();
 
-        // Пример: создаем 2 запроса
-        RequestDto requestDto1 = new RequestDto();
-        requestDto1.setDescription("Запрос 1");
-        itemRequestService.createRequest(requestDto1, userId);
+        // Создаем запрос
+        RequestDto requestDto = new RequestDto();
+        requestDto.setDescription("Описание запроса");
+        ItemRequestDto createdRequest = itemRequestService.createRequest(requestDto, userId);
+        Long existingRequestId = createdRequest.getId();
 
-        RequestDto requestDto2 = new RequestDto();
-        requestDto2.setDescription("Запрос 2");
-        itemRequestService.createRequest(requestDto2, userId);
+        // Проверка, что при существующем ID возвращается DTO
+        ItemsRequestDto resultExist = itemRequestService.getRequestById(existingRequestId);
+        assertNotNull(resultExist);
+        assertEquals(existingRequestId, resultExist.getId());
+        assertEquals("Описание запроса", resultExist.getDescription());
 
-        // 1. вызываем метод получения запросов
-        List<ItemsRequestDto> requests = itemRequestService.getUserRequests(userId);
-
-        // 2. Проверяем, что список содержит созданные запросы
-        assertThat(requests).isNotNull();
-        assertThat(requests).hasSize(2);
-        assertThat(requests).extracting("description")
-                .containsExactlyInAnyOrder("Запрос 1", "Запрос 2");
+        // Проверка, что при несуществующем ID возвращается null
+        Long fakeId = 999999L; // предположим, такого ID не существует
+        ItemsRequestDto resultNotExist = itemRequestService.getRequestById(fakeId);
+        assertNull(resultNotExist);
     }
 }

@@ -7,7 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import static org.assertj.core.api.Assertions.*;
 
 import org.springframework.test.context.jdbc.Sql;
-import ru.practicum.shareit.ShareItApp;
+import ru.practicum.shareit.ShareItServer;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.user.UserMapper;
@@ -19,7 +19,7 @@ import ru.practicum.shareit.user.model.User;
         scripts = "/schema.sql",
         executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD
 )
-@SpringBootTest(classes = ShareItApp.class)
+@SpringBootTest(classes = ShareItServer.class)
 public class UserServiceIntegrationTest {
     @Autowired
     private UserService userService;
@@ -81,5 +81,37 @@ public class UserServiceIntegrationTest {
         assertThatThrownBy(() -> userService.updateUser(userId, invalidDto))
                 .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("не может быть пустым");
+    }
+
+    @Test
+    void testDeleteUser_Success() {
+        // 1. Создаем тестового пользователя
+        User originalUser = new User();
+        originalUser.setName("Иван");
+        originalUser.setEmail("ivan@example.com");
+        UserDto savedUser = userService.addUser(UserMapper.toUserDto(originalUser));
+        Long userId = savedUser.getId();
+
+        // 2. Удаляем пользователя
+        UserDto deletedUserDto = userService.deleteUser(userId);
+
+        // 3. Проверка, что возвращен DTO удаленного пользователя
+        assertThat(deletedUserDto).isNotNull();
+        assertThat(deletedUserDto.getId()).isEqualTo(userId);
+        assertThat(deletedUserDto.getName()).isEqualTo("Иван");
+        assertThat(deletedUserDto.getEmail()).isEqualTo("ivan@example.com");
+
+        // 4. Проверка, что пользователь реально удален из базы
+        UserDto userInRepo = userService.getUser(userId);
+        assertThat(userInRepo).isNull();
+    }
+
+    @Test
+    void testDeleteUser_UserNotFound_ReturnsNull() {
+        Long nonExistentUserId = 999L; // ID не существующего пользователя
+        // 1. Попытка удалить несуществующего пользователя
+        UserDto result = userService.deleteUser(nonExistentUserId);
+        // 2. Проверка, что результат null
+        assertThat(result).isNull();
     }
 }
