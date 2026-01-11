@@ -77,17 +77,8 @@ public class UserServiceImpl implements UserService {
         return repository.existsById(userId);
     }
 
-    private UserDto setUserFields(User userFromRepos, UserDto userDtoUpdate) {
-        if (userDtoUpdate.getEmail() != null) {
-            userFromRepos.setEmail(userDtoUpdate.getEmail());
-        }
-        if (userDtoUpdate.getName() != null) {
-            userFromRepos.setName(userDtoUpdate.getName());
-        }
-        return UserMapper.toUserDto(userFromRepos);
-    }
-
-    private void validateUser(UserDto userDto) {
+    @Override
+    public void validateUser(UserDto userDto) {
         if (userDto != null) {
             String email = userDto.getEmail();
             if (email.isEmpty()) {
@@ -101,6 +92,16 @@ public class UserServiceImpl implements UserService {
             log.warn(NOT_FOUND_USER_MESSAGE);
             throw new NotFoundException(NOT_FOUND_USER_MESSAGE);
         }
+    }
+
+    private UserDto setUserFields(User userFromRepos, UserDto userDtoUpdate) {
+        if (userDtoUpdate.getEmail() != null) {
+            userFromRepos.setEmail(userDtoUpdate.getEmail());
+        }
+        if (userDtoUpdate.getName() != null) {
+            userFromRepos.setName(userDtoUpdate.getName());
+        }
+        return UserMapper.toUserDto(userFromRepos);
     }
 
     private boolean isUserWithEmailExists(String email, Long userId) {

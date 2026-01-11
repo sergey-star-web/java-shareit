@@ -114,4 +114,59 @@ public class UserServiceIntegrationTest {
         // 2. Проверка, что результат null
         assertThat(result).isNull();
     }
+
+    @Test
+    void testValidateUser_ValidUser_ShouldNotThrow() {
+        UserDto user = new UserDto();
+        user.setEmail("valid@example.com");
+        user.setId(1L);
+
+        assertThatCode(() -> userService.validateUser(user))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void testValidateUser_EmailEmpty_ShouldThrow() {
+        UserDto user = new UserDto();
+        user.setEmail("");
+        user.setId(1L);
+
+        assertThatThrownBy(() -> userService.validateUser(user))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("Почта пользователя не может быть пустым");
+    }
+
+    @Test
+    void testValidateUser_InvalidEmail_ShouldThrow() {
+        UserDto user = new UserDto();
+        user.setEmail("invalidEmail");
+        user.setId(1L);
+
+        assertThatThrownBy(() -> userService.validateUser(user))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("Email должен содержать символ '@'");
+    }
+
+    @Test
+    void testValidateUser_EmailExists_ShouldThrow() {
+        UserDto userAdd = new UserDto();
+        userAdd.setEmail("taken@example.com");
+        userAdd.setName("test");
+        userService.addUser(userAdd);
+
+        UserDto user = new UserDto();
+        user.setEmail("taken@example.com");
+        user.setId(2L);
+
+        assertThatThrownBy(() -> userService.validateUser(user))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("Email уже занят другим пользователем");
+    }
+
+    @Test
+    void testValidateUser_NullUser_ShouldThrow() {
+        assertThatThrownBy(() -> userService.validateUser(null))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("Пользователь не найден");
+    }
 }
