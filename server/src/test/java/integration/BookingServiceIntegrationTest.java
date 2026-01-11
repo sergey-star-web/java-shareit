@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
 @Sql(
@@ -490,4 +491,66 @@ public class BookingServiceIntegrationTest {
         });
     }
 
+    @Test
+    public void testGetBookingsForItems_WithTestData() {
+        // Создаем владельца и арендатора
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner@example.com");
+        Long ownerId = userService.addUser(UserMapper.toUserDto(owner)).getId();
+
+        User renter = new User();
+        renter.setName("Renter");
+        renter.setEmail("renter@example.com");
+        Long renterId = userService.addUser(UserMapper.toUserDto(renter)).getId();
+
+        // Создаем вещь (item)
+        Item item1 = new Item();
+        item1.setName("Item1");
+        item1.setDescription("Description1");
+        item1.setAvailable(true);
+        item1.setOwnerId(ownerId);
+        item1.setId(itemService.addItem(ownerId, ItemMapper.toItemDto(item1)).getId());
+
+        Item item2 = new Item();
+        item2.setName("Item2");
+        item2.setDescription("Description2");
+        item2.setAvailable(true);
+        item2.setOwnerId(ownerId);
+        item2.setId(itemService.addItem(ownerId, ItemMapper.toItemDto(item2)).getId());
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // Создаем бронирования для предметов
+        Booking booking1 = new Booking();
+        booking1.setItemId(item1.getId());
+        booking1.setItem(item1);
+        booking1.setBookerId(renterId);
+        booking1.setStart(now.plusDays(1));
+        booking1.setEnd(now.plusDays(2));
+        booking1.setStatus(BookingStatus.APPROVED);
+
+        Booking booking2 = new Booking();
+        booking2.setItemId(item2.getId());
+        booking2.setItem(item2);
+        booking2.setBookerId(renterId);
+        booking2.setStart(now.plusDays(3));
+        booking2.setEnd(now.plusDays(4));
+        booking2.setStatus(BookingStatus.APPROVED);
+
+        // Добавляем бронирования (предположим, у вас есть метод сохранения, например, bookingService.addBooking)
+        bookingService.addBooking(booking1);
+        bookingService.addBooking(booking2);
+
+        // Создаем список Items для вызова
+        List<Item> items = Arrays.asList(item1, item2);
+
+        // Вызываем метод
+        List<Booking> result = bookingService.getBookingsForItems(items);
+
+        // Проверка - убедимся, что возвращаются все бронирования
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting(Booking::getItemId)
+                .containsExactlyInAnyOrder(item1.getId(), item2.getId());
+    }
 }
