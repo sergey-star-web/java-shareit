@@ -553,4 +553,112 @@ public class BookingServiceIntegrationTest {
         assertThat(result).extracting(Booking::getItemId)
                 .containsExactlyInAnyOrder(item1.getId(), item2.getId());
     }
+
+    @Test
+    void testGetBooking_Success_UserIsBookerOrOwner() {
+        // Создаем пользователя — владелец вещи
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner@example.com");
+        owner.setId(userService.addUser(UserMapper.toUserDto(owner)).getId());
+        Long ownerId = owner.getId();
+
+        // Создаем пользователя — арендатор (броирутель)
+        User renter = new User();
+        renter.setName("Renter");
+        renter.setEmail("renter@example.com");
+        renter.setId(userService.addUser(UserMapper.toUserDto(renter)).getId());
+        Long renterId = renter.getId();
+
+        // Создаем предмет, принадлежит владельцу
+        Item item = new Item();
+        item.setName("TestItem");
+        item.setDescription("desc");
+        item.setAvailable(true);
+        item.setOwnerId(ownerId);
+        item.setId(itemService.addItem(ownerId, ItemMapper.toItemDto(item)).getId());
+        Long itemId = item.getId();
+
+        // Создаем бронирование от арендатора
+        Booking booking = new Booking();
+        booking.setItemId(itemId);
+        booking.setItem(item);
+        booking.setBookerId(renterId);
+        booking.setStart(LocalDateTime.now().plusDays(1));
+        booking.setEnd(LocalDateTime.now().plusDays(2));
+        booking.setStatus(BookingStatus.APPROVED);
+
+        // Сохраняем бронирование
+        bookingService.addBooking(booking);
+        Long bookingId = booking.getId();
+
+        // Вызов от пользователя-арендатора (Booker)
+        BookingDto resultDtoBooker = bookingService.getBooking(renterId, bookingId);
+
+        // Вызов от владельца вещи
+        BookingDto resultDtoOwner = bookingService.getBooking(ownerId, bookingId);
+
+        // Проверка, что возвращается корректная информация
+        assertThat(resultDtoBooker).isNotNull();
+        assertThat(resultDtoBooker.getId()).isEqualTo(bookingId);
+        assertThat(resultDtoBooker.getItem().getId()).isEqualTo(itemId);
+        assertThat(resultDtoOwner).isNotNull();
+    }
+
+    @Test
+    void testGetBooking_UserWithoutRights_ShouldThrowValidationException() {
+        // Создаем пользователей
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner2@example.com");
+        owner.setId(userService.addUser(UserMapper.toUserDto(owner)).getId());
+        Long ownerId = owner.getId();
+
+        User otherUser = new User();
+        otherUser.setName("OtherUser");
+        otherUser.setEmail("other@example.com");
+        otherUser.setId(userService.addUser(UserMapper.toUserDto(otherUser)).getId());
+        Long otherUserId = otherUser.getId();
+
+        // Создаем предмет
+        Item item = new Item();
+        item.setName("Item");
+        item.setDescription("desc");
+        item.setAvailable(true);
+        item.setOwnerId(ownerId);
+        item.setId(itemService.addItem(ownerId, ItemMapper.toItemDto(item)).getId());
+        Long itemId = item.getId();
+
+        // Создаем бронирование
+        Booking booking = new Booking();
+        booking.setItemId(itemId);
+        booking.setItem(item);
+        booking.setBookerId(ownerId); // Бронирование сделано владельцем
+        booking.setStart(LocalDateTime.now().plusDays(1));
+        booking.setEnd(LocalDateTime.now().plusDays(2));
+        booking.setStatus(BookingStatus.APPROVED);
+        bookingService.addBooking(booking);
+        Long bookingId = booking.getId();
+
+        // Попытка получить бронирование от пользователя, который не является владельцем и не автором (ожидается исключение)
+        assertThatThrownBy(() -> {
+            bookingService.getBooking(otherUserId, bookingId);
+        }).isInstanceOf(ValidationException.class)
+                .hasMessage("У вас нет прав на текущее бронирование");
+    }
+
+    @Test
+    void testGetBooking_NotFound_ShouldThrowNotFoundException() {
+        User owner = new User();
+        owner.setName("Owner");
+        owner.setEmail("owner2@example.com");
+        owner.setId(userService.addUser(UserMapper.toUserDto(owner)).getId());
+        Long ownerId = owner.getId();
+        Long nonexistentBookingId = 999L; // Нек existing booking ID
+
+        assertThatThrownBy(() -> {
+            bookingService.getBooking(ownerId, nonexistentBookingId);
+        }).isInstanceOf(NotFoundException.class)
+                .hasMessage("Бронирование не найдено");
+    }
 }
