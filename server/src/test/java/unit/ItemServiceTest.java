@@ -1,5 +1,6 @@
-package integration;
+package unit;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -35,7 +36,7 @@ import java.util.stream.Collectors;
         executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD
 )
 @SpringBootTest(classes = ShareItServer.class)
-public class ItemServiceIntegrationTest {
+public class ItemServiceTest {
     @Autowired
     private ItemService itemService;
     @Autowired
@@ -43,31 +44,57 @@ public class ItemServiceIntegrationTest {
     @Autowired
     private UserService userService;
 
-    @Test
-    public void testGetItemsWithBookingDates() {
-        // Создаем пользователя-владельца вещи
-        User user = User.builder().id(1L).name("testuser1").email("owner@example.com").build();
+    private static final LocalDateTime NOW = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+
+    private User user;
+    private Long userId;
+
+    private Item item1;
+    private Item item2;
+    private Long itemId1;
+
+    @BeforeEach
+    public void setup() {
+        // Создадим пользователя-владельца
+        user = User.builder()
+                .name("testuser")
+                .email("testuser@example.com")
+                .build();
         user.setId(userService.addUser(UserMapper.toUserDto(user)).getId());
+        userId = user.getId();
 
-        // Создаем вещи
-        Item item1 = Item.builder().name("Item 1").description("Description 1").available(true).ownerId(user.getId()).build();
-        Item item2 = Item.builder().name("Item 2").description("Description 2").available(true).ownerId(user.getId()).build();
+        // Создаем предметы
+        item1 = Item.builder()
+                .name("Camera")
+                .description("Camera lens")
+                .available(true)
+                .ownerId(userId)
+                .build();
 
+        item2 = Item.builder()
+                .name("Tripod")
+                .description("A digital camera")
+                .available(true)
+                .ownerId(userId)
+                .build();
+
+        // Добавляем их и сохраняем в поля для дальнейшего использования в тестах
         item1.setId(itemService.addItem(user.getId(), ItemMapper.toItemDto(item1)).getId());
         item2.setId(itemService.addItem(user.getId(), ItemMapper.toItemDto(item2)).getId());
+        itemId1 = item1.getId();
+    }
 
-        // Текущее время, обрезанное до секунд
-        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
-
+    @Test
+    public void testGetItemsWithBookingDates() {
         // Создаем бронирования с определенными датами
-        LocalDateTime bookingStart1 = now.minusDays(5);
-        LocalDateTime bookingEnd1 = now.minusDays(2);
+        LocalDateTime bookingStart1 = NOW.minusDays(5);
+        LocalDateTime bookingEnd1 = NOW.minusDays(2);
 
-        LocalDateTime bookingStart2 = now.plusDays(1);
-        LocalDateTime bookingEnd2 = now.plusDays(3);
+        LocalDateTime bookingStart2 = NOW.plusDays(1);
+        LocalDateTime bookingEnd2 = NOW.plusDays(3);
 
-        LocalDateTime bookingStart3 = now.plusDays(4);
-        LocalDateTime bookingEnd3 = now.plusDays(6);
+        LocalDateTime bookingStart3 = NOW.plusDays(4);
+        LocalDateTime bookingEnd3 = NOW.plusDays(6);
 
         // Создаем бронирования
         Booking booking1 = Booking.builder()
@@ -115,25 +142,6 @@ public class ItemServiceIntegrationTest {
 
     @Test
     public void testUpdateItem_Success() {
-        // Создаем пользователя-владельца
-        User owner = User.builder()
-                .name("ownerName")
-                .email("owner@example.com")
-                .build();
-        owner.setId(userService.addUser(UserMapper.toUserDto(owner)).getId());
-
-        // Создаем вещь
-        Item item = Item.builder()
-                .name("Old Name")
-                .description("Old Description")
-                .available(true)
-                .ownerId(owner.getId())
-                .build();
-        item.setId(itemService.addItem(owner.getId(), ItemMapper.toItemDto(item)).getId());
-
-        // Пользователь, который будет обновлять вещь (тот же владелец)
-        Long userId = owner.getId();
-
         // Новый DTO для обновления
         ItemDto updateDto = new ItemDto();
         updateDto.setName("New Name");
@@ -141,7 +149,7 @@ public class ItemServiceIntegrationTest {
         updateDto.setAvailable(false);
 
         // Вызов метода обновления
-        ItemDto updatedItem = itemService.updateItem(userId, item.getId(), updateDto);
+        ItemDto updatedItem = itemService.updateItem(userId, itemId1, updateDto);
 
         // Проверки
         assertThat(updatedItem).isNotNull();
@@ -150,7 +158,7 @@ public class ItemServiceIntegrationTest {
         assertThat(updatedItem.getAvailable()).isFalse();
 
         // После вызова updateItem
-        ItemDto updatedItemFromRepo = itemService.getItem(item.getId());
+        ItemDto updatedItemFromRepo = itemService.getItem(itemId1);
 
         // Проверяем, что поля совпадают с обновленными данными
         assertThat(updatedItemFromRepo.getName()).isEqualTo("New Name");
@@ -159,32 +167,7 @@ public class ItemServiceIntegrationTest {
 
     @Test
     public void testGetAvailableItems_WithSearchText_ReturnsMatchingItems() {
-        User owner = User.builder()
-                .name("ownerName")
-                .email("owner@example.com")
-                .build();
-        owner.setId(userService.addUser(UserMapper.toUserDto(owner)).getId());
-        Long userId = owner.getId();
-
-        // Создаем доступные и недоступные предметы для этого пользователя
-        Item item1 = new Item();
-        item1.setId(1L);
-        item1.setName("Camera");
-        item1.setDescription("A digital camera");
-        item1.setAvailable(true);
-        item1.setOwnerId(userId);
-        itemService.addItem(userId, ItemMapper.toItemDto(item1));
-
-        Item item2 = new Item();
-        item2.setId(2L);
-        item2.setName("Tripod");
-        item2.setDescription("A camera tripod");
-        item2.setAvailable(true);
-        item2.setOwnerId(userId);
-        itemService.addItem(userId, ItemMapper.toItemDto(item2));
-
         Item item3 = new Item();
-        item3.setId(3L);
         item3.setName("Lens");
         item3.setDescription("Camera lens");
         item3.setAvailable(false); // Недоступен
@@ -197,7 +180,6 @@ public class ItemServiceIntegrationTest {
         List<ItemDto> result = itemService.getAvailableItems(searchText, userId);
 
         // Проверки
-        // Ожидаются только items, связанные с "camera" и доступны
         assertThat(result).hasSize(2);
         List<String> itemNames = result.stream()
                 .map(ItemDto::getName)
@@ -207,30 +189,6 @@ public class ItemServiceIntegrationTest {
 
     @Test
     public void testGetAvailableItems_NoMatches_ReturnsEmpty() {
-        User owner = User.builder()
-                .name("ownerName")
-                .email("owner@example.com")
-                .build();
-        owner.setId(userService.addUser(UserMapper.toUserDto(owner)).getId());
-        Long userId = owner.getId();
-
-        // Создаем доступные и недоступные предметы для этого пользователя
-        Item item1 = new Item();
-        item1.setId(1L);
-        item1.setName("Camera");
-        item1.setDescription("A digital camera");
-        item1.setAvailable(true);
-        item1.setOwnerId(userId);
-        itemService.addItem(userId, ItemMapper.toItemDto(item1));
-
-        Item item2 = new Item();
-        item2.setId(2L);
-        item2.setName("Tripod");
-        item2.setDescription("A camera tripod");
-        item2.setAvailable(true);
-        item2.setOwnerId(userId);
-        itemService.addItem(userId, ItemMapper.toItemDto(item2));
-
         Item item3 = new Item();
         item3.setId(3L);
         item3.setName("Lens");
@@ -262,16 +220,6 @@ public class ItemServiceIntegrationTest {
         rentedDto.setId(userService.addUser(rentedDto).getId()); // сохраняем пользователя и получаем его ID
         Long rentedId = rentedDto.getId();
 
-        // Создаем вещь
-        Item item1 = new Item();
-        item1.setId(1L);
-        item1.setName("Camera");
-        item1.setDescription("A digital camera");
-        item1.setAvailable(true);
-        item1.setOwnerId(ownerId);
-        item1.setId(itemService.addItem(ownerId, ItemMapper.toItemDto(item1)).getId());
-        Long itemId = item1.getId();
-
         // Создаем бронирования через сервис
         LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
         LocalDateTime startBooking = now.minusDays(5);
@@ -281,21 +229,21 @@ public class ItemServiceIntegrationTest {
         Booking booking = Booking.builder()
                 .start(startBooking)
                 .end(endBooking)
-                .itemId(itemId)
+                .itemId(itemId1)
                 .build();
         BookingDto bookingDto = bookingService.addBooking(rentedId, BookingMapper.toBookingRequestDto(booking));
 
-        itemService.addComment(itemId, new CommentDto(null, "Comment 1", item1,
+        itemService.addComment(itemId1, new CommentDto(null, "Comment 1", item1,
                 "Owner", LocalDateTime.now()), rentedId);
-        itemService.addComment(itemId, new CommentDto(null, "Comment 2", item1,
+        itemService.addComment(itemId1, new CommentDto(null, "Comment 2", item1,
                 "Owner", LocalDateTime.now().plusDays(2)), rentedId);
 
         // Вызов целевого метода
-        ItemCommDto result = itemService.getItemById(itemId);
+        ItemCommDto result = itemService.getItemById(itemId1);
 
         // Проверки
         assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(itemId);
+        assertThat(result.getId()).isEqualTo(itemId1);
         assertThat(result.getComments()).hasSize(2);
         assertThat(result.getComments().get(0).getText()).isEqualTo("Comment 1");
         assertThat(bookingDto.getEnd()).isEqualTo(endBooking);
@@ -304,14 +252,6 @@ public class ItemServiceIntegrationTest {
 
     @Test
     public void testValidateItem_NullItemDto_ThrowsNotFoundException() {
-        // Создаем пользователя
-        User owner = User.builder()
-                .name("ownerName")
-                .email("owner@example.com")
-                .build();
-        owner.setId(userService.addUser(UserMapper.toUserDto(owner)).getId());
-        Long userId = owner.getId();
-
         // Вызов с null itemDto
         NotFoundException thrown = assertThrows(NotFoundException.class, () -> {
             itemService.validateItem(null, userId, null);
@@ -338,14 +278,6 @@ public class ItemServiceIntegrationTest {
 
     @Test
     public void testValidateItem_ItemFromReposWithDifferentOwner_ThrowsNotFoundException() {
-        // Создаем пользователя
-        User owner = User.builder()
-                .name("ownerName")
-                .email("owner@example.com")
-                .build();
-        owner.setId(userService.addUser(UserMapper.toUserDto(owner)).getId());
-        Long userId = owner.getId();
-
         // Создаем вещь с другим владельцем
         Item itemFromRepos = new Item();
         itemFromRepos.setId(1L);
@@ -368,14 +300,6 @@ public class ItemServiceIntegrationTest {
 
     @Test
     public void testValidateItem_ItemAvailableNull_ThrowsValidationException() {
-        // Создаем пользователя
-        User owner = User.builder()
-                .name("ownerName")
-                .email("owner@example.com")
-                .build();
-        owner.setId(userService.addUser(UserMapper.toUserDto(owner)).getId());
-        Long userId = owner.getId();
-
         // Создаем DTO с null доступностью
         ItemDto itemDto = new ItemDto();
         itemDto.setId(1L);
@@ -399,14 +323,6 @@ public class ItemServiceIntegrationTest {
 
     @Test
     public void testValidateItem_ItemNameEmpty_ThrowsValidationException() {
-        // Создаем пользователя
-        User owner = User.builder()
-                .name("ownerName")
-                .email("owner@example.com")
-                .build();
-        owner.setId(userService.addUser(UserMapper.toUserDto(owner)).getId());
-        Long userId = owner.getId();
-
         // DTO с пустым именем
         ItemDto itemDto = new ItemDto();
         itemDto.setId(1L);
@@ -430,14 +346,6 @@ public class ItemServiceIntegrationTest {
 
     @Test
     public void testValidateItem_ItemDescriptionNull_ThrowsValidationException() {
-        // Создаем пользователя
-        User owner = User.builder()
-                .name("ownerName")
-                .email("owner@example.com")
-                .build();
-        owner.setId(userService.addUser(UserMapper.toUserDto(owner)).getId());
-        Long userId = owner.getId();
-
         // DTO с null description
         ItemDto itemDto = new ItemDto();
         itemDto.setId(1L);

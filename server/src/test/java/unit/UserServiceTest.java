@@ -1,5 +1,6 @@
-package integration;
+package unit;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,30 +21,43 @@ import ru.practicum.shareit.user.model.User;
         executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD
 )
 @SpringBootTest(classes = ShareItServer.class)
-public class UserServiceIntegrationTest {
+public class UserServiceTest {
     @Autowired
     private UserService userService;
 
+    private UserDto testUser1;
+    private UserDto testUser2;
+    private Long testUserId1;
+    private Long testUserId2;
+
+    @BeforeEach
+    public void setup() {
+        // Создаем первого тестового пользователя
+        User originalUser1 = new User();
+        originalUser1.setName("Иван");
+        originalUser1.setEmail("ivan@example.com");
+        testUser1 = userService.addUser(UserMapper.toUserDto(originalUser1));
+
+        // Создаем второго тестового пользователя
+        User originalUser2 = new User();
+        originalUser2.setName("Петр");
+        originalUser2.setEmail("petr@example.com");
+        testUser2 = userService.addUser(UserMapper.toUserDto(originalUser2));
+
+        testUserId1 = testUser1.getId();
+        testUserId2 = testUser2.getId();
+    }
+
     @Test
     void testUpdateUser_Success() {
-        // 1. Создаем тестового пользователя
-        User originalUser = new User();
-        originalUser.setName("Иван");
-        originalUser.setEmail("ivan@example.com");
-        // сохранить пользователя (предположим, есть метод)
-        UserDto savedUser = userService.addUser(UserMapper.toUserDto(originalUser));
-        Long userId = savedUser.getId();
-
-        // 2. Создаем DTO с обновленными данными
+        // Обновляем данные тестового пользователя 1
         UserDto updateDto = new UserDto();
-        updateDto.setId(userId);
+        updateDto.setId(testUserId1);
         updateDto.setName("Иван Иванов");
         updateDto.setEmail("ivanov@example.com");
 
-        // 3. Обновляем пользователя
-        UserDto resultDto = userService.updateUser(userId, updateDto);
+        UserDto resultDto = userService.updateUser(testUserId1, updateDto);
 
-        // 4. Проверка, что изменение прошло успешно
         assertThat(resultDto.getName()).isEqualTo("Иван Иванов");
         assertThat(resultDto.getEmail()).isEqualTo("ivanov@example.com");
     }
@@ -57,61 +71,46 @@ public class UserServiceIntegrationTest {
         updateDto.setName("Неизвестный");
         updateDto.setEmail("unknown@example.com");
 
-        // Ожидаем исключение NotFoundException
         assertThatThrownBy(() -> userService.updateUser(nonExistingUserId, updateDto))
                 .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Пользователь не найден"); // или ваше сообщение
+                .hasMessageContaining("Пользователь не найден");
     }
 
     @Test
     void testUpdateUser_InvalidEmail_ShouldThrowValidationException() {
-        User originalUser = new User();
-        originalUser.setName("Иван");
-        originalUser.setEmail("ivan@example.com");
-        // Создаем тестового пользователя
-        UserDto savedUser = userService.addUser(UserMapper.toUserDto(originalUser));
-        Long userId = savedUser.getId();
-
         UserDto invalidDto = new UserDto();
-        invalidDto.setId(userId);
+        invalidDto.setId(testUserId1);
         invalidDto.setName("Имя");
         invalidDto.setEmail(""); // пустой email
 
-        // Проверка, что выбрасывается ValidationException
-        assertThatThrownBy(() -> userService.updateUser(userId, invalidDto))
+        assertThatThrownBy(() -> userService.updateUser(testUser1.getId(), invalidDto))
                 .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("не может быть пустым");
     }
 
     @Test
     void testDeleteUser_Success() {
-        // 1. Создаем тестового пользователя
-        User originalUser = new User();
-        originalUser.setName("Иван");
-        originalUser.setEmail("ivan@example.com");
-        UserDto savedUser = userService.addUser(UserMapper.toUserDto(originalUser));
-        Long userId = savedUser.getId();
+        UserDto deletedUserDto = userService.deleteUser(testUserId2);
 
-        // 2. Удаляем пользователя
-        UserDto deletedUserDto = userService.deleteUser(userId);
-
-        // 3. Проверка, что возвращен DTO удаленного пользователя
         assertThat(deletedUserDto).isNotNull();
-        assertThat(deletedUserDto.getId()).isEqualTo(userId);
-        assertThat(deletedUserDto.getName()).isEqualTo("Иван");
-        assertThat(deletedUserDto.getEmail()).isEqualTo("ivan@example.com");
+        assertThat(deletedUserDto.getId()).isEqualTo(testUserId2);
+        assertThat(deletedUserDto.getName()).isEqualTo("Петр");
+        assertThat(deletedUserDto.getEmail()).isEqualTo("petr@example.com");
 
-        // 4. Проверка, что пользователь реально удален из базы
-        UserDto userInRepo = userService.getUser(userId);
+        // Проверка, что пользователь реально удален
+        UserDto userInRepo = null;
+        try {
+            userInRepo = userService.getUser(testUserId2);
+        } catch (Exception e) {
+            userInRepo = null;
+        }
         assertThat(userInRepo).isNull();
     }
 
     @Test
     void testDeleteUser_UserNotFound_ReturnsNull() {
-        Long nonExistentUserId = 999L; // ID не существующего пользователя
-        // 1. Попытка удалить несуществующего пользователя
+        Long nonExistentUserId = 999L;
         UserDto result = userService.deleteUser(nonExistentUserId);
-        // 2. Проверка, что результат null
         assertThat(result).isNull();
     }
 

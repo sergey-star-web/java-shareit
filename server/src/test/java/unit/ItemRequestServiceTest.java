@@ -1,8 +1,9 @@
-package integration;
+package unit;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.jdbc.Sql;
 import ru.practicum.shareit.ShareItServer;
 import ru.practicum.shareit.request.ItemRequestService;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
@@ -15,8 +16,12 @@ import ru.practicum.shareit.user.model.User;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Sql(
+        scripts = "/schema.sql",
+        executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD
+)
 @SpringBootTest(classes = ShareItServer.class)
-public class ItemRequestServiceIntegrationTest {
+public class ItemRequestServiceTest {
     @Autowired
     private ItemRequestService itemRequestService;
     @Autowired

@@ -1,5 +1,6 @@
-package integration;
+package unit;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,7 +31,7 @@ import java.util.List;
         executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD
 )
 @SpringBootTest(classes = ShareItServer.class)
-public class BookingServiceIntegrationTest {
+public class BookingServiceTest {
     @Autowired
     private BookingService bookingService;
     @Autowired
@@ -38,36 +39,48 @@ public class BookingServiceIntegrationTest {
     @Autowired
     private UserService userService;
 
-    @Test
-    void testGetUserBookings_CurrentsPastFutureWaitingRejected() {
-        // 1. Создаем пользователя
-        User user = new User();
-        user.setName("Пользователь");
-        user.setEmail("user@example.com");
+    private User user;
+    private User booker;
+    private Long userId;
+    private Long bookerId;
+    private Item item;
+    private Long itemId;
+    private static final LocalDateTime NOW = LocalDateTime.now();
+
+    @BeforeEach
+    void setUp() {
+        // Создание владельца
+        user = new User();
+        user.setName("Владелец");
+        user.setEmail("owner@example.com");
         user.setId(userService.addUser(UserMapper.toUserDto(user)).getId());
+        userId = user.getId();
 
-        Long userId = user.getId();
-
-        // 2. Создаем предмет
-        Item item = new Item();
-        item.setName("Предмет 1");
-        item.setDescription("descript");
+        // Создание предмета, принадлежащего владельцу
+        item = new Item();
+        item.setName("Предмет владельца");
+        item.setDescription("desc");
         item.setAvailable(true);
         item.setOwnerId(userId);
         item.setId(itemService.addItem(userId, ItemMapper.toItemDto(item)).getId());
-        Long itemId = item.getId();
+        itemId = item.getId();
 
-        LocalDateTime now = LocalDateTime.now();
+        booker = new User();
+        booker.setName("Арендатор");
+        booker.setEmail("booker@example.com");
+        booker.setId(userService.addUser(UserMapper.toUserDto(booker)).getId());
+        bookerId = booker.getId();
+    }
 
-        // 3. Создаем бронирования для каждого режима
-
+    @Test
+    void testGetUserBookings_CurrentsPastFutureWaitingRejected() {
         // Текущее: start -1 день, end +1 день (должно попасть в CURRENT)
         Booking currentBooking = new Booking();
         currentBooking.setItemId(itemId);
         currentBooking.setItem(item);
         currentBooking.setBookerId(userId);
-        currentBooking.setStart(now.minusDays(1));
-        currentBooking.setEnd(now.plusDays(1));
+        currentBooking.setStart(NOW.minusDays(1));
+        currentBooking.setEnd(NOW.plusDays(1));
         currentBooking.setStatus(BookingStatus.APPROVED);
         bookingService.addBooking(currentBooking);
 
@@ -76,8 +89,8 @@ public class BookingServiceIntegrationTest {
         pastBooking.setItemId(itemId);
         pastBooking.setItem(item);
         pastBooking.setBookerId(userId);
-        pastBooking.setStart(now.minusDays(5));
-        pastBooking.setEnd(now.minusDays(3));
+        pastBooking.setStart(NOW.minusDays(5));
+        pastBooking.setEnd(NOW.minusDays(3));
         pastBooking.setStatus(BookingStatus.APPROVED);
         bookingService.addBooking(pastBooking);
 
@@ -86,8 +99,8 @@ public class BookingServiceIntegrationTest {
         futureBooking.setItemId(itemId);
         futureBooking.setItem(item);
         futureBooking.setBookerId(userId);
-        futureBooking.setStart(now.plusDays(2));
-        futureBooking.setEnd(now.plusDays(4));
+        futureBooking.setStart(NOW.plusDays(2));
+        futureBooking.setEnd(NOW.plusDays(4));
         futureBooking.setStatus(BookingStatus.APPROVED);
         bookingService.addBooking(futureBooking);
 
@@ -96,8 +109,8 @@ public class BookingServiceIntegrationTest {
         waitingBooking.setItemId(itemId);
         waitingBooking.setItem(item);
         waitingBooking.setBookerId(userId);
-        waitingBooking.setStart(now.plusDays(1));
-        waitingBooking.setEnd(now.plusDays(2));
+        waitingBooking.setStart(NOW.plusDays(1));
+        waitingBooking.setEnd(NOW.plusDays(2));
         waitingBooking.setStatus(BookingStatus.WAITING);
         bookingService.addBooking(waitingBooking);
 
@@ -106,12 +119,12 @@ public class BookingServiceIntegrationTest {
         rejectedBooking.setItemId(itemId);
         rejectedBooking.setItem(item);
         rejectedBooking.setBookerId(userId);
-        rejectedBooking.setStart(now.minusDays(2));
-        rejectedBooking.setEnd(now.minusDays(1));
+        rejectedBooking.setStart(NOW.minusDays(2));
+        rejectedBooking.setEnd(NOW.minusDays(1));
         rejectedBooking.setStatus(BookingStatus.REJECTED);
         bookingService.addBooking(rejectedBooking);
 
-        // 4. Проверка для каждого состояния
+        // Проверка для каждого состояния
         // CURRENT:
         List<BookingDto> currentBookings = bookingService.getUserBookings(userId, BookingState.CURRENT);
         assertThat(currentBookings).isNotEmpty();
@@ -119,22 +132,22 @@ public class BookingServiceIntegrationTest {
         for (BookingDto b : currentBookings) {
             LocalDateTime start = b.getStart();
             LocalDateTime end = b.getEnd();
-            assertThat(start).isBeforeOrEqualTo(now);
-            assertThat(end).isAfterOrEqualTo(now);
+            assertThat(start).isBeforeOrEqualTo(NOW);
+            assertThat(end).isAfterOrEqualTo(NOW);
         }
 
         // PAST:
         List<BookingDto> pastBookings = bookingService.getUserBookings(userId, BookingState.PAST);
         assertThat(pastBookings).isNotEmpty();
         for (BookingDto b : pastBookings) {
-            assertThat(b.getEnd()).isBeforeOrEqualTo(now);
+            assertThat(b.getEnd()).isBeforeOrEqualTo(NOW);
         }
 
         // FUTURE:
         List<BookingDto> futureBookings = bookingService.getUserBookings(userId, BookingState.FUTURE);
         assertThat(futureBookings).isNotEmpty();
         for (BookingDto b : futureBookings) {
-            assertThat(b.getStart()).isAfter(now);
+            assertThat(b.getStart()).isAfter(NOW);
         }
 
         // WAITING:
@@ -152,14 +165,6 @@ public class BookingServiceIntegrationTest {
 
     @Test
     void testAddBooking_ItemNotAvailable_ShouldThrowAvailableException() {
-        // 1. Создаем пользователя
-        User user = new User();
-        user.setName("Пользователь");
-        user.setEmail("user_available_exception@example.com");
-        user.setId(userService.addUser(UserMapper.toUserDto(user)).getId());
-        Long userId = user.getId();
-
-        // 2. Создаем предмет, сделав его недоступным
         Item item = new Item();
         item.setName("Недоступный предмет");
         item.setDescription("descript");
@@ -168,11 +173,11 @@ public class BookingServiceIntegrationTest {
         item.setId(itemService.addItem(userId, ItemMapper.toItemDto(item)).getId());
         Long itemId = item.getId();
 
-        // 3. Создаем BookingRequestDto для этого предмета
+        // Создаем BookingRequestDto для этого предмета
         BookingRequestDto bookingRequestDto = new BookingRequestDto();
         bookingRequestDto.setItemId(itemId);
 
-        // 4. Проверка, что вызов метода вызывает исключение AvailableException
+        // Проверка, что вызов метода вызывает исключение AvailableException
         assertThatThrownBy(() -> {
             bookingService.addBooking(userId, bookingRequestDto);
         }).isInstanceOf(AvailableException.class)
@@ -181,39 +186,14 @@ public class BookingServiceIntegrationTest {
 
     @Test
     void testGetOwnerBookings_CurrentsPastFutureWaitingRejectedAll() {
-        // 1. Создаем пользователя- владельца
-        User owner = new User();
-        owner.setName("Владелец");
-        owner.setEmail("owner@example.com");
-        owner.setId(userService.addUser(UserMapper.toUserDto(owner)).getId());
-        Long ownerId = owner.getId();
-
-        // 2. Создаем предмет, принадлежащий владельцу
-        Item item = new Item();
-        item.setName("Предмет владельца");
-        item.setDescription("desc");
-        item.setAvailable(true);
-        item.setOwnerId(ownerId);
-        item.setId(itemService.addItem(ownerId, ItemMapper.toItemDto(item)).getId());
-        Long itemId = item.getId();
-
-        // 3. Создаем другого пользователя - арендующего
-        User booker = new User();
-        booker.setName("Арендатор");
-        booker.setEmail("booker@example.com");
-        booker.setId(userService.addUser(UserMapper.toUserDto(booker)).getId());
-        Long bookerId = booker.getId();
-
-        LocalDateTime now = LocalDateTime.now();
-
-        // 4. Создаем бронирования с разными статусами и временами для владельца
+        // Создаем бронирования с разными статусами и временами для владельца
         // CURRENT бронирование
         Booking currentBooking = new Booking();
         currentBooking.setItemId(itemId);
         currentBooking.setItem(item);
         currentBooking.setBookerId(bookerId);
-        currentBooking.setStart(now.minusDays(1));
-        currentBooking.setEnd(now.plusDays(1));
+        currentBooking.setStart(NOW.minusDays(1));
+        currentBooking.setEnd(NOW.plusDays(1));
         currentBooking.setStatus(BookingStatus.APPROVED);
         bookingService.addBooking(currentBooking);
 
@@ -222,8 +202,8 @@ public class BookingServiceIntegrationTest {
         pastBooking.setItemId(itemId);
         pastBooking.setItem(item);
         pastBooking.setBookerId(bookerId);
-        pastBooking.setStart(now.minusDays(5));
-        pastBooking.setEnd(now.minusDays(3));
+        pastBooking.setStart(NOW.minusDays(5));
+        pastBooking.setEnd(NOW.minusDays(3));
         pastBooking.setStatus(BookingStatus.APPROVED);
         bookingService.addBooking(pastBooking);
 
@@ -232,8 +212,8 @@ public class BookingServiceIntegrationTest {
         futureBooking.setItemId(itemId);
         futureBooking.setItem(item);
         futureBooking.setBookerId(bookerId);
-        futureBooking.setStart(now.plusDays(2));
-        futureBooking.setEnd(now.plusDays(4));
+        futureBooking.setStart(NOW.plusDays(2));
+        futureBooking.setEnd(NOW.plusDays(4));
         futureBooking.setStatus(BookingStatus.APPROVED);
         bookingService.addBooking(futureBooking);
 
@@ -242,8 +222,8 @@ public class BookingServiceIntegrationTest {
         waitingBooking.setItemId(itemId);
         waitingBooking.setItem(item);
         waitingBooking.setBookerId(bookerId);
-        waitingBooking.setStart(now.plusDays(1));
-        waitingBooking.setEnd(now.plusDays(2));
+        waitingBooking.setStart(NOW.plusDays(1));
+        waitingBooking.setEnd(NOW.plusDays(2));
         waitingBooking.setStatus(BookingStatus.WAITING);
         bookingService.addBooking(waitingBooking);
 
@@ -252,35 +232,34 @@ public class BookingServiceIntegrationTest {
         rejectedBooking.setItemId(itemId);
         rejectedBooking.setItem(item);
         rejectedBooking.setBookerId(bookerId);
-        rejectedBooking.setStart(now.minusDays(2));
-        rejectedBooking.setEnd(now.minusDays(1));
+        rejectedBooking.setStart(NOW.minusDays(2));
+        rejectedBooking.setEnd(NOW.minusDays(1));
         rejectedBooking.setStatus(BookingStatus.REJECTED);
         bookingService.addBooking(rejectedBooking);
 
-        // 5. Проверка для каждого состояния
-
+        //Проверка для каждого состояния
         // CURRENT:
         List<BookingDto> currentList = bookingService.getOwnerBookings(bookerId, BookingState.CURRENT);
         assertThat(currentList).isNotEmpty();
         for (BookingDto b : currentList) {
             LocalDateTime start = b.getStart();
             LocalDateTime end = b.getEnd();
-            assertThat(start).isBeforeOrEqualTo(now);
-            assertThat(end).isAfterOrEqualTo(now);
+            assertThat(start).isBeforeOrEqualTo(NOW);
+            assertThat(end).isAfterOrEqualTo(NOW);
         }
 
         // PAST:
         List<BookingDto> pastList = bookingService.getOwnerBookings(bookerId, BookingState.PAST);
         assertThat(pastList).isNotEmpty();
         for (BookingDto b : pastList) {
-            assertThat(b.getEnd()).isBeforeOrEqualTo(now);
+            assertThat(b.getEnd()).isBeforeOrEqualTo(NOW);
         }
 
         // FUTURE:
         List<BookingDto> futureList = bookingService.getOwnerBookings(bookerId, BookingState.FUTURE);
         assertThat(futureList).isNotEmpty();
         for (BookingDto b : futureList) {
-            assertThat(b.getStart()).isAfter(now);
+            assertThat(b.getStart()).isAfter(NOW);
         }
 
         // WAITING:
@@ -304,90 +283,43 @@ public class BookingServiceIntegrationTest {
 
     @Test
     public void testUpdateBookingApprove() {
-        // Создаем пользователя-арендодателя и пользователя-арендатора
-        User owner = new User();
-        owner.setName("Владелец");
-        owner.setEmail("owner@example.com");
-        owner.setId(userService.addUser(UserMapper.toUserDto(owner)).getId());
-        Long ownerId = owner.getId();
-
-        User renter = new User();
-        renter.setName("Renter");
-        renter.setEmail("Renter@example.com");
-        renter.setId(userService.addUser(UserMapper.toUserDto(renter)).getId());
-        Long renterId = renter.getId();
-
-        // Создаем предмет и привязываем его владельцу
-        // 2. Создаем предмет, принадлежащий владельцу
-        Item item = new Item();
-        item.setName("Предмет владельца");
-        item.setDescription("desc");
-        item.setAvailable(true);
-        item.setOwnerId(ownerId);
-        item.setId(itemService.addItem(ownerId, ItemMapper.toItemDto(item)).getId());
-        Long itemId = item.getId();
-
-        LocalDateTime now = LocalDateTime.now();
         // Создаем бронирование со статусом WAITING
         Booking waitingBooking = new Booking();
         waitingBooking.setItemId(itemId);
         waitingBooking.setItem(item);
-        waitingBooking.setBookerId(renterId);
-        waitingBooking.setStart(now.plusDays(1));
-        waitingBooking.setEnd(now.plusDays(2));
+        waitingBooking.setBookerId(bookerId);
+        waitingBooking.setStart(NOW.plusDays(1));
+        waitingBooking.setEnd(NOW.plusDays(2));
         waitingBooking.setStatus(BookingStatus.WAITING);
         bookingService.addBooking(waitingBooking);
 
         // Обновляем бронирование с одобрением
-        bookingService.updateBooking(owner.getId(), waitingBooking.getId(), true);
+        bookingService.updateBooking(user.getId(), waitingBooking.getId(), true);
 
         // Проверяем, что статус стал APPROVED
-        BookingDto updatedBooking = bookingService.getBooking(renterId, waitingBooking.getId());
+        BookingDto updatedBooking = bookingService.getBooking(bookerId, waitingBooking.getId());
         assertThat(updatedBooking.getStatus()).isEqualTo(BookingStatus.APPROVED);
     }
 
     @Test
     public void testUpdateBookingReject() {
-        // Создаем пользователя-арендодателя
-        User owner = new User();
-        owner.setName("Владелец");
-        owner.setEmail("owner@example.com");
-        Long ownerId = userService.addUser(UserMapper.toUserDto(owner)).getId();
-
-        // Создаем пользователя-арендатора
-        User renter = new User();
-        renter.setName("Renter");
-        renter.setEmail("Renter@example.com");
-        Long renterId = userService.addUser(UserMapper.toUserDto(renter)).getId();
-
-        // Создаем предмет и привязываем его владельцу
-        Item item = new Item();
-        item.setName("Предмет владельца");
-        item.setDescription("desc");
-        item.setAvailable(true);
-        item.setOwnerId(ownerId);
-        item.setId(itemService.addItem(ownerId, ItemMapper.toItemDto(item)).getId());
-        Long itemId = item.getId();
-
-        LocalDateTime now = LocalDateTime.now();
-
         // Создаем бронирование со статусом WAITING
         Booking booking = new Booking();
         booking.setItemId(itemId);
         booking.setItem(item);
-        booking.setBookerId(renterId);
-        booking.setStart(now.plusDays(1));
-        booking.setEnd(now.plusDays(2));
+        booking.setBookerId(bookerId);
+        booking.setStart(NOW.plusDays(1));
+        booking.setEnd(NOW.plusDays(2));
         booking.setStatus(BookingStatus.WAITING);
 
         // Добавляем бронирование
         booking.setId(bookingService.addBooking(booking).getId());
 
         // Отклоняем бронирование
-        bookingService.updateBooking(ownerId, booking.getId(), false);
+        bookingService.updateBooking(userId, booking.getId(), false);
 
         // Получаем обновленное бронирование
-        BookingDto updatedBooking = bookingService.getBooking(renterId, booking.getId());
+        BookingDto updatedBooking = bookingService.getBooking(bookerId, booking.getId());
 
         // Проверяем, что статус стал REJECTED
         assertThat(updatedBooking.getStatus()).isEqualTo(BookingStatus.REJECTED);
@@ -404,40 +336,27 @@ public class BookingServiceIntegrationTest {
 
     @Test
     public void testUpdateBookingNotOwner() {
-        // Создаем пользователей
-        User owner1 = new User();
-        owner1.setName("Owner1");
-        owner1.setEmail("owner1@example.com");
-        Long owner1Id = userService.addUser(UserMapper.toUserDto(owner1)).getId();
-
         User owner2 = new User();
         owner2.setName("Owner2");
         owner2.setEmail("owner2@example.com");
         Long owner2Id = userService.addUser(UserMapper.toUserDto(owner2)).getId();
-
-        User renter = new User();
-        renter.setName("Renter");
-        renter.setEmail("renter@example.com");
-        Long renterId = userService.addUser(UserMapper.toUserDto(renter)).getId();
 
         // Создаем предмет у owner1
         Item item = new Item();
         item.setName("Item1");
         item.setDescription("Description");
         item.setAvailable(true);
-        item.setOwnerId(owner1Id);
-        item.setId(itemService.addItem(owner1Id, ItemMapper.toItemDto(item)).getId());
+        item.setOwnerId(userId);
+        item.setId(itemService.addItem(userId, ItemMapper.toItemDto(item)).getId());
         Long itemId = item.getId();
-
-        LocalDateTime now = LocalDateTime.now();
 
         // Создаем бронирование со статусом WAITING
         Booking booking = new Booking();
         booking.setItemId(itemId);
         booking.setItem(item);
-        booking.setBookerId(renterId);
-        booking.setStart(now.plusDays(1));
-        booking.setEnd(now.plusDays(2));
+        booking.setBookerId(bookerId);
+        booking.setStart(NOW.plusDays(1));
+        booking.setEnd(NOW.plusDays(2));
         booking.setStatus(BookingStatus.WAITING);
 
         // Добавляем бронирование
@@ -451,35 +370,13 @@ public class BookingServiceIntegrationTest {
 
     @Test
     public void testUpdateBookingAlreadyProcessed() {
-        // Создаем пользователей
-        User owner = new User();
-        owner.setName("Owner");
-        owner.setEmail("owner@example.com");
-        Long ownerId = userService.addUser(UserMapper.toUserDto(owner)).getId();
-
-        User renter = new User();
-        renter.setName("Renter");
-        renter.setEmail("renter@example.com");
-        Long renterId = userService.addUser(UserMapper.toUserDto(renter)).getId();
-
-        // Создаем предмет
-        Item item = new Item();
-        item.setName("Item1");
-        item.setDescription("Description");
-        item.setAvailable(true);
-        item.setOwnerId(ownerId);
-        item.setId(itemService.addItem(ownerId, ItemMapper.toItemDto(item)).getId());
-        Long itemId = item.getId();
-
-        LocalDateTime now = LocalDateTime.now();
-
         // Создаем бронирование со статусом APPROVED
         Booking booking = new Booking();
         booking.setItemId(itemId);
         booking.setItem(item);
-        booking.setBookerId(renterId);
-        booking.setStart(now.plusDays(1));
-        booking.setEnd(now.plusDays(2));
+        booking.setBookerId(bookerId);
+        booking.setStart(NOW.plusDays(1));
+        booking.setEnd(NOW.plusDays(2));
         booking.setStatus(BookingStatus.APPROVED);
 
         // Добавляем бронирование
@@ -487,55 +384,42 @@ public class BookingServiceIntegrationTest {
 
         // Попытка повторного обновления (например, изменить статус)
         assertThrows(ValidationException.class, () -> {
-            bookingService.updateBooking(ownerId, booking.getId(), false);
+            bookingService.updateBooking(userId, booking.getId(), false);
         });
     }
 
     @Test
     public void testGetBookingsForItems_WithTestData() {
-        // Создаем владельца и арендатора
-        User owner = new User();
-        owner.setName("Owner");
-        owner.setEmail("owner@example.com");
-        Long ownerId = userService.addUser(UserMapper.toUserDto(owner)).getId();
-
-        User renter = new User();
-        renter.setName("Renter");
-        renter.setEmail("renter@example.com");
-        Long renterId = userService.addUser(UserMapper.toUserDto(renter)).getId();
-
         // Создаем вещь (item)
         Item item1 = new Item();
         item1.setName("Item1");
         item1.setDescription("Description1");
         item1.setAvailable(true);
-        item1.setOwnerId(ownerId);
-        item1.setId(itemService.addItem(ownerId, ItemMapper.toItemDto(item1)).getId());
+        item1.setOwnerId(userId);
+        item1.setId(itemService.addItem(userId, ItemMapper.toItemDto(item1)).getId());
 
         Item item2 = new Item();
         item2.setName("Item2");
         item2.setDescription("Description2");
         item2.setAvailable(true);
-        item2.setOwnerId(ownerId);
-        item2.setId(itemService.addItem(ownerId, ItemMapper.toItemDto(item2)).getId());
-
-        LocalDateTime now = LocalDateTime.now();
+        item2.setOwnerId(userId);
+        item2.setId(itemService.addItem(userId, ItemMapper.toItemDto(item2)).getId());
 
         // Создаем бронирования для предметов
         Booking booking1 = new Booking();
         booking1.setItemId(item1.getId());
         booking1.setItem(item1);
-        booking1.setBookerId(renterId);
-        booking1.setStart(now.plusDays(1));
-        booking1.setEnd(now.plusDays(2));
+        booking1.setBookerId(bookerId);
+        booking1.setStart(NOW.plusDays(1));
+        booking1.setEnd(NOW.plusDays(2));
         booking1.setStatus(BookingStatus.APPROVED);
 
         Booking booking2 = new Booking();
         booking2.setItemId(item2.getId());
         booking2.setItem(item2);
-        booking2.setBookerId(renterId);
-        booking2.setStart(now.plusDays(3));
-        booking2.setEnd(now.plusDays(4));
+        booking2.setBookerId(bookerId);
+        booking2.setStart(NOW.plusDays(3));
+        booking2.setEnd(NOW.plusDays(4));
         booking2.setStatus(BookingStatus.APPROVED);
 
         // Добавляем бронирования (предположим, у вас есть метод сохранения, например, bookingService.addBooking)
@@ -556,36 +440,13 @@ public class BookingServiceIntegrationTest {
 
     @Test
     void testGetBooking_Success_UserIsBookerOrOwner() {
-        // Создаем пользователя — владелец вещи
-        User owner = new User();
-        owner.setName("Owner");
-        owner.setEmail("owner@example.com");
-        owner.setId(userService.addUser(UserMapper.toUserDto(owner)).getId());
-        Long ownerId = owner.getId();
-
-        // Создаем пользователя — арендатор (броирутель)
-        User renter = new User();
-        renter.setName("Renter");
-        renter.setEmail("renter@example.com");
-        renter.setId(userService.addUser(UserMapper.toUserDto(renter)).getId());
-        Long renterId = renter.getId();
-
-        // Создаем предмет, принадлежит владельцу
-        Item item = new Item();
-        item.setName("TestItem");
-        item.setDescription("desc");
-        item.setAvailable(true);
-        item.setOwnerId(ownerId);
-        item.setId(itemService.addItem(ownerId, ItemMapper.toItemDto(item)).getId());
-        Long itemId = item.getId();
-
         // Создаем бронирование от арендатора
         Booking booking = new Booking();
         booking.setItemId(itemId);
         booking.setItem(item);
-        booking.setBookerId(renterId);
-        booking.setStart(LocalDateTime.now().plusDays(1));
-        booking.setEnd(LocalDateTime.now().plusDays(2));
+        booking.setBookerId(bookerId);
+        booking.setStart(NOW.plusDays(1));
+        booking.setEnd(NOW.plusDays(2));
         booking.setStatus(BookingStatus.APPROVED);
 
         // Сохраняем бронирование
@@ -593,10 +454,10 @@ public class BookingServiceIntegrationTest {
         Long bookingId = booking.getId();
 
         // Вызов от пользователя-арендатора (Booker)
-        BookingDto resultDtoBooker = bookingService.getBooking(renterId, bookingId);
+        BookingDto resultDtoBooker = bookingService.getBooking(bookerId, bookingId);
 
         // Вызов от владельца вещи
-        BookingDto resultDtoOwner = bookingService.getBooking(ownerId, bookingId);
+        BookingDto resultDtoOwner = bookingService.getBooking(userId, bookingId);
 
         // Проверка, что возвращается корректная информация
         assertThat(resultDtoBooker).isNotNull();
@@ -607,35 +468,19 @@ public class BookingServiceIntegrationTest {
 
     @Test
     void testGetBooking_UserWithoutRights_ShouldThrowValidationException() {
-        // Создаем пользователей
-        User owner = new User();
-        owner.setName("Owner");
-        owner.setEmail("owner2@example.com");
-        owner.setId(userService.addUser(UserMapper.toUserDto(owner)).getId());
-        Long ownerId = owner.getId();
-
         User otherUser = new User();
         otherUser.setName("OtherUser");
         otherUser.setEmail("other@example.com");
         otherUser.setId(userService.addUser(UserMapper.toUserDto(otherUser)).getId());
         Long otherUserId = otherUser.getId();
 
-        // Создаем предмет
-        Item item = new Item();
-        item.setName("Item");
-        item.setDescription("desc");
-        item.setAvailable(true);
-        item.setOwnerId(ownerId);
-        item.setId(itemService.addItem(ownerId, ItemMapper.toItemDto(item)).getId());
-        Long itemId = item.getId();
-
         // Создаем бронирование
         Booking booking = new Booking();
         booking.setItemId(itemId);
         booking.setItem(item);
-        booking.setBookerId(ownerId); // Бронирование сделано владельцем
-        booking.setStart(LocalDateTime.now().plusDays(1));
-        booking.setEnd(LocalDateTime.now().plusDays(2));
+        booking.setBookerId(userId); // Бронирование сделано владельцем
+        booking.setStart(NOW.plusDays(1));
+        booking.setEnd(NOW.plusDays(2));
         booking.setStatus(BookingStatus.APPROVED);
         bookingService.addBooking(booking);
         Long bookingId = booking.getId();
@@ -649,15 +494,10 @@ public class BookingServiceIntegrationTest {
 
     @Test
     void testGetBooking_NotFound_ShouldThrowNotFoundException() {
-        User owner = new User();
-        owner.setName("Owner");
-        owner.setEmail("owner2@example.com");
-        owner.setId(userService.addUser(UserMapper.toUserDto(owner)).getId());
-        Long ownerId = owner.getId();
         Long nonexistentBookingId = 999L; // Нек existing booking ID
 
         assertThatThrownBy(() -> {
-            bookingService.getBooking(ownerId, nonexistentBookingId);
+            bookingService.getBooking(userId, nonexistentBookingId);
         }).isInstanceOf(NotFoundException.class)
                 .hasMessage("Бронирование не найдено");
     }
